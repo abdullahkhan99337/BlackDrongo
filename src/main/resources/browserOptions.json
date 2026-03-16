@@ -1,0 +1,16 @@
+{
+  "browsers": {
+    "chrome": {
+      "arguments": ["--start-maximized", "--incognito", "--disable-notifications"],
+      "acceptInsecureCerts": true
+    },
+    "firefox": {
+      "arguments": ["-private"],
+      "acceptInsecureCerts": true
+    },
+    "edge": {
+      "arguments": ["--start-maximized", "--inprivate"],
+      "acceptInsecureCerts": true
+    }
+  }
+}
