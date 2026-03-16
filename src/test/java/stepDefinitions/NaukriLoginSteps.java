@@ -1,17 +1,14 @@
 package stepDefinitions;
 
 import browsers.BrowserManager;
-import browsers.ConfigReader;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import pageObjects.NaukriLoginPage;
 import steps.Step;
+import utils.Utility;
 
-import java.io.File;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Paths;
 
 public class NaukriLoginSteps {
 
@@ -61,19 +58,13 @@ public class NaukriLoginSteps {
 
     @Then("user updates the profile by uploading resume")
     public void userShouldNavigateToProfile() throws URISyntaxException {
-        URL res = getClass().getClassLoader().getResource("Resume.docx");
-        File file = Paths.get(res.toURI()).toFile();
-        String absolutePath = file.getAbsolutePath();
+
         step.setWebElement(NaukriLoginPage.userProfileMenu)
                 .waitForVisible()
                 .click();
 
-        step.setWebElement(NaukriLoginPage.uploadResumeButton)
-                .waitForClickable()
-                .click();
-
         step.setWebElement(NaukriLoginPage.resumeFileInput)
-                .uploadFile(absolutePath);
+                .uploadFile(Utility.getAbsolutePath("src/test/resources/Resume.docx"));
     }
 
     @Then("user should see success message")

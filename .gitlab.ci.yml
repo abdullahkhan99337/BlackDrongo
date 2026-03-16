@@ -1,0 +1,20 @@
+stages:
+  - test
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+test:
+  stage: test
+  image: maven:3.9.9-eclipse-temurin-25
+  cache:
+    paths:
+      - .m2/repository
+  script:
+    - mvn -version
+    - mvn test
+  artifacts:
+    when: always
+    paths:
+      - target/surefire-reports/
+      - target/cucumber-reports/
