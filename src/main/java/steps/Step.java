@@ -8,7 +8,7 @@ public class Step {
 
     private By element;
     private By secondElement;
-    private long timeoutSeconds = 10;
+    private long timeoutSeconds = 60;
     private long pollingMillis = 500;
     private boolean autoWaitEnabled = true;
 
