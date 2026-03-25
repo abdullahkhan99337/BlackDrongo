@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Scenarios</title>
+    <link href="/css/dashboard-theme.css" rel="stylesheet">
+    <style>
+        .scenarios-intro {
+            min-height: 92px;
+        }
+        .scenarios-board-card {
+            min-height: 620px;
+            max-height: 620px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .scenarios-board-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .scenarios-search {
+            width: 280px;
+            height: 36px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: rgba(17, 24, 57, 0.8);
+            color: var(--text);
+            padding: 8px 10px;
+            margin: 0;
+            min-width: 220px;
+        }
+        .scenarios-search:focus {
+            outline: none;
+            border-color: rgba(89, 214, 255, 0.55);
+            box-shadow: 0 0 0 3px rgba(89, 214, 255, 0.14);
+        }
+        .scenarios-table-wrap {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: auto;
+            margin-top: 12px;
+        }
+        @media (max-width: 900px) {
+            .scenarios-search {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+<div class="app-shell">
+    <aside class="app-sidebar">
+        <div class="brand">
+            <div class="brand-mark">B</div>
+            <span>BlackDrongo</span>
+        </div>
+        <div class="nav-section">
+            <p class="nav-title">Workspace</p>
+            <a class="nav-link" href="/">Overview</a>
+            <a class="nav-link" href="/projects">Projects</a>
+        </div>
+        <div class="nav-section">
+            <p class="nav-title">Execution</p>
+            <a class="nav-link" th:href="@{'/projects/' + ${project.id()} + '/executions'(state='RUNNING')}">Running
+                Tests</a>
+        </div>
+    </aside>
+    <main class="app-main">
+        <section class="content-card scenarios-intro">
+            <div class="content-header">
+                <div>
+                    <h2 class="content-title" th:text="${project.project().projectName} + ' Scenarios'">Project
+                        Scenarios</h2>
+                    <div class="subtle">Engine: <span th:text="${project.project().engine}">selenium</span>
+                        | Browser: <span th:text="${project.project().browser}">chrome</span></div>
+                    <div class="subtle">Feature: <span th:text="${feature.request().featureName}">Feature</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-card scenarios-board-card">
+            <div class="content-header">
+                <div>
+                    <h2 class="content-title">Scenario Board</h2>
+                    <div class="subtle">Manage scenarios and execution from one place.</div>
+                </div>
+                <button class="btn btn-primary" onclick="openScenarioModal('create')" type="button">Create Scenario
+                </button>
+            </div>
+            <div class="u-mt-16" th:if="${!#lists.isEmpty(scenarioRows)}">
+                <form id="scenarioTableForm" method="post">
+                    <input name="sourcePage" type="hidden" value="scenarios"/>
+                    <div class="scenarios-board-controls u-mb-16">
+                        <input class="scenarios-search" id="scenarioSearch" oninput="filterScenarios()"
+                               placeholder="Search by name or tags" type="text"/>
+                        <label class="toggle">
+                            <input class="toggle-input" id="parallelToggle" name="parallel" type="checkbox"
+                                   value="true"/>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Parallel execution</span>
+                        </label>
+                        <span class="hint u-m-0">When enabled, selected scenarios run in parallel.</span>
+                        <button class="btn btn-soft" disabled id="runSelectedBtn"
+                                th:formaction="@{'/projects/' + ${project.id()} + '/features/' + ${feature.id()} + '/scenarios/run-selected'}"
+                                type="submit">Run Selected
+                        </button>
+                        <button class="btn btn-primary" th:formaction="@{'/projects/' + ${project.id()} + '/features/' + ${feature.id()} + '/scenarios/run-all'}"
+                                type="submit">
+                            Run All
+                        </button>
+                        <span class="hint u-m-0" id="selectedCount">Selected: 0</span>
+                    </div>
+                    <div class="table-wrap scenarios-table-wrap">
+                        <table id="scenarioTable">
+                            <thead>
+                            <tr>
+                                <th><input class="check-input" id="selectAll" onclick="toggleSelectAll(this)"
+                                           type="checkbox"/></th>
+                                <th>Scenario</th>
+                                <th>Tags</th>
+                                <th>Status</th>
+                                <th>Last Message</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:attr="data-search=${#strings.toLowerCase((row.request().scenarioName ?: '') + ' ' + (row.request().scenarioTags ?: ''))},
+                                 data-scenario-id=${row.id()}"
+                                th:each="row : ${scenarioRows}">
+                                <td>
+                                    <input class="scenario-checkbox check-input" name="scenarioIds" onchange="updateSelectedCount()"
+                                           th:value="${row.id()}" type="checkbox"/>
+                                </td>
+                                <td>
+                                    <button class="u-link-btn"
+                                            onclick="editScenario(this)"
+                                            th:attr="data-id=${row.id()},
+                                             data-name=${row.request().scenarioName},
+                                             data-steps=${row.request().scenarioSteps},
+                                             data-tags=${row.request().scenarioTags},
+                                             data-mvnargs=${row.request().mvnArgs}"
+                                            type="button">
+                                        <span th:text="${row.request().scenarioName}">Scenario</span>
+                                    </button>
+                                </td>
+                                <td th:text="${row.request().scenarioTags}">@smoke</td>
+                                <td>
+                            <span class="status"
+                                  th:attr="data-status-for=${row.id()}"
+                                  th:classappend="${row.status() != null and row.status().state() == 'SUCCESS'} ? ' success' :
+                                                  (${row.status() != null and row.status().state() == 'FAILURE'} ? ' failure' :
+                                                  (${row.status() != null and row.status().state() == 'RUNNING'} ? ' running' : ''))"
+                                  th:text="${row.status() != null ? row.status().state() : 'Not Run'}">Not Run</span>
+                                    <div class="message"
+                                         th:attr="data-updated-for=${row.id()}"
+                                         th:text="${row.status() != null ? row.status().updatedAt() : ''}"></div>
+                                </td>
+                                <td class="message"
+                                    th:attr="data-message-for=${row.id()}"
+                                    th:text="${row.status() != null ? row.status().message() : '-'}">-
+                                </td>
+                                <td>
+                                    <div class="u-flex u-gap-8 u-items-center u-flex-wrap">
+                                        <button aria-label="Edit Scenario"
+                                                class="icon-btn edit-btn"
+                                                onclick="editScenario(this)"
+                                                th:attr="data-id=${row.id()},
+                                                 data-name=${row.request().scenarioName},
+                                                 data-steps=${row.request().scenarioSteps},
+                                                 data-tags=${row.request().scenarioTags},
+                                                 data-mvnargs=${row.request().mvnArgs}"
+                                                title="Edit Scenario"
+                                                type="button">
+                                            <svg aria-hidden="true" class="icon" viewBox="0 0 24 24">
+                                                <path d="M3 17.3V21h3.7l10.9-10.9-3.7-3.7L3 17.3zm18.4-11.2a1 1 0 0 0 0-1.4l-2.1-2.1a1 1 0 0 0-1.4 0l-1.6 1.6 3.7 3.7 1.4-1.8z"/>
+                                            </svg>
+                                        </button>
+                                        <button aria-label="Run Scenario"
+                                                class="icon-btn run-btn"
+                                                th:formaction="@{'/projects/' + ${project.id()} + '/features/' + ${feature.id()} + '/scenarios/run/' + ${row.id()}}"
+                                                title="Run Scenario"
+                                                type="submit">
+                                            <svg aria-hidden="true" class="icon" viewBox="0 0 24 24">
+                                                <path d="M8 5v14l11-7z"/>
+                                            </svg>
+                                        </button>
+                                        <button aria-label="Delete Scenario"
+                                                class="icon-btn delete-btn"
+                                                onclick="return openDeleteDialog(this.form, 'Delete this scenario?');"
+                                                th:formaction="@{'/projects/' + ${project.id()} + '/features/' + ${feature.id()} + '/scenarios/delete/' + ${row.id()}}"
+                                                title="Delete Scenario"
+                                                type="submit">
+                                            <svg aria-hidden="true" class="icon" viewBox="0 0 24 24">
+                                                <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9z"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+            <div class="empty-state" th:if="${#lists.isEmpty(scenarioRows)}">No scenarios yet. Create your first
+                scenario.
+            </div>
+        </section>
+    </main>
+</div>
+
+<div class="modal"
+     id="scenarioModal"
+     onclick="onModalBackdrop(event)">
+    <div class="modal-content" onclick="event.stopPropagation();">
+        <div class="modal-header">
+            <h2 id="scenarioModalTitle">Create Scenario</h2>
+            <button aria-label="Close" class="modal-close modal-close-icon" onclick="closeScenarioModal()"
+                    type="button">&times;
+            </button>
+        </div>
+        <form id="scenarioForm" method="post"
+              th:action="@{'/projects/' + ${project.id()} + '/features/' + ${feature.id()} + '/scenarios/save'}"
+              th:object="${scenario}">
+            <input th:field="*{scenarioId}" type="hidden"/>
+            <input th:field="*{mvnArgs}" type="hidden"/>
+
+            <label>Scenario name</label>
+            <input placeholder="User logs in" required th:field="*{scenarioName}" type="text"/>
+
+            <label>Scenario steps (plain English)</label>
+            <textarea rows="6" th:field="*{scenarioSteps}"></textarea>
+            <div class="hint u-mt-6">
+                One step per line. You can start with Given/When/Then or just write sentences.
+                Use locator override with a pipe: <code>Click Login | css=#login</code>
+            </div>
+
+            <label>Scenario tags</label>
+            <input placeholder="@smoke @regression" th:field="*{scenarioTags}" type="text"/>
+            <div class="hint">Comma or space separated. @ is optional.</div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="saveBtn" type="submit">Save Scenario</button>
+                <button class="btn btn-primary u-hidden" id="updateBtn" th:formaction="@{'/projects/' + ${project.id()} + '/features/' + ${feature.id()} + '/scenarios/update'}"
+                        type="submit">
+                    Update Scenario
+                </button>
+                <button class="btn btn-soft u-hidden" id="cancelEditBtn" onclick="closeScenarioModal()" type="button">
+                    Cancel
+                </button>
+            </div>
+            <input name="sourcePage" type="hidden" value="scenarios"/>
+        </form>
+        <p th:if="${message != null}" th:text="${message}"></p>
+    </div>
+</div>
+
+<div class="modal" id="deleteConfirmModal" onclick="onDeleteBackdrop(event)">
+    <div class="modal-content" onclick="event.stopPropagation();">
+        <div class="modal-header">
+            <h2>Confirm Delete</h2>
+            <button aria-label="Close" class="modal-close modal-close-icon" onclick="closeDeleteDialog()" type="button">
+                &times;
+            </button>
+        </div>
+        <p class="subtle" id="deleteConfirmText">Are you sure?</p>
+        <div class="modal-actions">
+            <button class="btn btn-danger" onclick="confirmDeleteAction()" type="button">Delete</button>
+            <button class="btn btn-soft" onclick="closeDeleteDialog()" type="button">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const projectId = '[[${project.id()}]]';
+    const featureId = '[[${feature.id()}]]';
+    let pendingDeleteForm = null;
+
+    function openScenarioModal(mode) {
+        const modal = document.getElementById('scenarioModal');
+        if (!modal) {
+            return;
+        }
+        modal.classList.add('open');
+        document.body.classList.add('modal-open');
+        if (mode === 'create') {
+            resetScenarioForm();
+            document.getElementById('scenarioModalTitle').textContent = 'Create Scenario';
+            document.getElementById('saveBtn').style.display = 'inline-block';
+            document.getElementById('updateBtn').style.display = 'none';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+    }
+
+    function closeScenarioModal() {
+        const modal = document.getElementById('scenarioModal');
+        if (modal) {
+            modal.classList.remove('open');
+        }
+        document.body.classList.remove('modal-open');
+    }
+
+    function openDeleteDialog(form, message) {
+        pendingDeleteForm = form || null;
+        const modal = document.getElementById('deleteConfirmModal');
+        const text = document.getElementById('deleteConfirmText');
+        if (text) {
+            text.textContent = message || 'Are you sure you want to delete?';
+        }
+        if (modal) {
+            modal.classList.add('open');
+            document.body.classList.add('modal-open');
+        }
+        return false;
+    }
+
+    function closeDeleteDialog() {
+        pendingDeleteForm = null;
+        const modal = document.getElementById('deleteConfirmModal');
+        if (modal) {
+            modal.classList.remove('open');
+        }
+        document.body.classList.remove('modal-open');
+    }
+
+    function onDeleteBackdrop(event) {
+        if (event.target && event.target.id === 'deleteConfirmModal') {
+            closeDeleteDialog();
+        }
+    }
+
+    function confirmDeleteAction() {
+        if (pendingDeleteForm) {
+            pendingDeleteForm.submit();
+        }
+    }
+
+    function onModalBackdrop(event) {
+        if (event.target && event.target.id === 'scenarioModal') {
+            closeScenarioModal();
+        }
+    }
+
+    function resetScenarioForm() {
+        document.querySelector('[name="scenarioId"]').value = '';
+        document.querySelector('[name="scenarioName"]').value = '';
+        document.querySelector('[name="scenarioSteps"]').value = '';
+        document.querySelector('[name="scenarioTags"]').value = '';
+        const mvnArgs = document.querySelector('[name="mvnArgs"]');
+        if (mvnArgs) {
+            mvnArgs.value = '';
+        }
+    }
+
+    function editScenario(btn) {
+        openScenarioModal('edit');
+        document.getElementById('scenarioModalTitle').textContent = 'Edit Scenario';
+        document.querySelector('[name="scenarioId"]').value = btn.dataset.id || '';
+        document.querySelector('[name="scenarioName"]').value = btn.dataset.name || '';
+        document.querySelector('[name="scenarioSteps"]').value = btn.dataset.steps || '';
+        document.querySelector('[name="scenarioTags"]').value = btn.dataset.tags || '';
+        const mvnArgs = document.querySelector('[name="mvnArgs"]');
+        if (mvnArgs) {
+            mvnArgs.value = btn.dataset.mvnargs || '';
+        }
+        document.getElementById('saveBtn').style.display = 'none';
+        document.getElementById('updateBtn').style.display = 'inline-block';
+        document.getElementById('cancelEditBtn').style.display = 'inline-block';
+    }
+
+
+    function filterScenarios() {
+        const query = (document.getElementById('scenarioSearch').value || '').toLowerCase().trim();
+        document.querySelectorAll('#scenarioTable tbody tr').forEach(row => {
+            const haystack = row.dataset.search || '';
+            row.style.display = haystack.includes(query) ? '' : 'none';
+        });
+        syncSelectAll();
+        updateSelectedCount();
+    }
+
+    function toggleSelectAll(source) {
+        const checked = source.checked;
+        document.querySelectorAll('#scenarioTable tbody tr').forEach(row => {
+            if (row.style.display === 'none') {
+                return;
+            }
+            const box = row.querySelector('.scenario-checkbox');
+            if (box) {
+                box.checked = checked;
+            }
+        });
+        updateSelectedCount();
+    }
+
+    function syncSelectAll() {
+        const boxes = Array.from(document.querySelectorAll('#scenarioTable tbody tr'))
+            .filter(row => row.style.display !== 'none')
+            .map(row => row.querySelector('.scenario-checkbox'))
+            .filter(Boolean);
+        const allChecked = boxes.length > 0 && boxes.every(box => box.checked);
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) {
+            selectAll.checked = allChecked;
+        }
+    }
+
+    function updateSelectedCount() {
+        const boxes = Array.from(document.querySelectorAll('.scenario-checkbox'));
+        const selected = boxes.filter(box => box.checked).length;
+        const label = document.getElementById('selectedCount');
+        if (label) {
+            label.textContent = `Selected: ${selected}`;
+        }
+        const runSelected = document.getElementById('runSelectedBtn');
+        if (runSelected) {
+            runSelected.disabled = selected === 0;
+        }
+        syncSelectAll();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateSelectedCount();
+        refreshScenarioStatuses();
+        setInterval(refreshScenarioStatuses, 2000);
+        const modal = document.getElementById('scenarioModal');
+        if (modal && modal.classList.contains('open')) {
+            document.body.classList.add('modal-open');
+            const scenarioId = document.querySelector('[name="scenarioId"]').value;
+            if (scenarioId) {
+                document.getElementById('scenarioModalTitle').textContent = 'Edit Scenario';
+                document.getElementById('saveBtn').style.display = 'none';
+                document.getElementById('updateBtn').style.display = 'inline-block';
+                document.getElementById('cancelEditBtn').style.display = 'inline-block';
+            }
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeScenarioModal();
+        }
+    });
+
+    let refreshInFlight = false;
+
+    async function refreshScenarioStatuses() {
+        if (refreshInFlight || !projectId || !featureId) {
+            return;
+        }
+        refreshInFlight = true;
+        try {
+            const response = await fetch(`/projects/${projectId}/features/${featureId}/scenario-statuses`);
+            if (!response.ok) {
+                return;
+            }
+            const statuses = await response.json();
+            if (!Array.isArray(statuses)) {
+                return;
+            }
+            statuses.forEach(item => {
+                const id = item.id;
+                if (!id) {
+                    return;
+                }
+                const stateEl = document.querySelector(`[data-status-for="${id}"]`);
+                const updatedEl = document.querySelector(`[data-updated-for="${id}"]`);
+                const messageEl = document.querySelector(`[data-message-for="${id}"]`);
+                if (stateEl) {
+                    const normalized = normalizeState(item.state);
+                    stateEl.textContent = stateLabel(normalized);
+                    stateEl.classList.remove('success', 'failure', 'running');
+                    if (normalized === 'SUCCESS') {
+                        stateEl.classList.add('success');
+                    } else if (normalized === 'FAILURE') {
+                        stateEl.classList.add('failure');
+                    } else if (normalized === 'RUNNING') {
+                        stateEl.classList.add('running');
+                    }
+                }
+                if (updatedEl) {
+                    updatedEl.textContent = item.updatedAt || '';
+                }
+                if (messageEl) {
+                    messageEl.textContent = item.message || '-';
+                }
+            });
+        } catch (e) {
+            // best effort
+        } finally {
+            refreshInFlight = false;
+        }
+    }
+
+    function normalizeState(state) {
+        if (!state) {
+            return 'NOT_RUN';
+        }
+        return String(state).trim().toUpperCase();
+    }
+
+    function stateLabel(state) {
+        if (state === 'NOT_RUN') {
+            return 'Not Run';
+        }
+        return state;
+    }
+</script>
+</body>
+</html>

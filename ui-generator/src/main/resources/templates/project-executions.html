@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Project Executions</title>
+    <link href="/css/dashboard-theme.css" rel="stylesheet">
+</head>
+<body class="dashboard-body">
+<div class="app-shell">
+    <aside class="app-sidebar">
+        <div class="brand">
+            <div class="brand-mark">B</div>
+            <span>BlackDrongo</span>
+        </div>
+        <div class="nav-section">
+            <p class="nav-title">Workspace</p>
+            <a class="nav-link" href="/">Overview</a>
+            <a class="nav-link" href="/projects">Projects</a>
+        </div>
+        <div class="nav-section">
+            <p class="nav-title">Execution</p>
+            <a class="nav-link active" th:href="@{'/projects/' + ${project.id()} + '/executions'(state='RUNNING')}">Running
+                Tests</a>
+        </div>
+    </aside>
+
+    <main class="app-main">
+        <header class="top-toolbar">
+            <div class="toolbar-meta">
+                <div class="crumb">Projects / Executions</div>
+                <h1 class="page-title" th:text="${project.project().projectName} + ' - Executions'">Project -
+                    Executions</h1>
+            </div>
+            <div class="toolbar-controls">
+                <span class="pill" th:if="${stateFilter != null && !stateFilter.isBlank()}"
+                      th:text="'Filter: ' + ${stateFilter}">Filter</span>
+                <a class="btn btn-soft" th:href="@{'/projects/' + ${project.id()}}">Back to Project</a>
+            </div>
+        </header>
+
+        <section class="content-card">
+            <div class="content-header">
+                <h2 class="content-title">Previous Executions</h2>
+            </div>
+            <div class="empty-state" th:if="${#lists.isEmpty(executionRows)}">No executions found for this filter.</div>
+            <div class="table-wrap" th:if="${!#lists.isEmpty(executionRows)}">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Scenario</th>
+                        <th>Feature</th>
+                        <th>State</th>
+                        <th>Message</th>
+                        <th>Updated At</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="run : ${executionRows}">
+                        <td th:text="${run.scenarioName()}">Scenario</td>
+                        <td th:text="${run.featureName()}">Feature</td>
+                        <td>
+                            <span class="pill"
+                                  th:classappend="${run.state() == 'SUCCESS'} ? ' ok' : (${run.state() == 'FAILURE'} ? ' fail' : '')"
+                                  th:text="${run.state()}">RUNNING</span>
+                        </td>
+                        <td th:text="${run.message()}">-</td>
+                        <td th:text="${#strings.isEmpty(run.updatedAt()) ? '-' : run.updatedAt()}">-</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

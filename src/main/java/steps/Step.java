@@ -1,5 +1,7 @@
 package steps;
 
+import browsers.ConfigReader;
+import browsers.BrowserManager;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -25,7 +27,13 @@ public class Step {
     }
 
     public static Step create(WebDriver driver) {
-        return new Step(driver);
+        Step step = new Step(driver);
+        ConfigReader config = ConfigReader.getInstance();
+        step.setTimeoutSeconds(BrowserManager.parseLong(
+                config.getOptionalProperty("timeout.explicitSeconds"), 60));
+        step.setPollingMillis(BrowserManager.parseLong(
+                config.getOptionalProperty("polling.millis"), 500));
+        return step;
     }
 
     public Step setWebElement(By element) {
@@ -252,4 +260,5 @@ public class Step {
                 ? waitActions.untilClickable(secondElement, timeoutSeconds, pollingMillis)
                 : waitActions.untilVisible(secondElement, timeoutSeconds, pollingMillis);
     }
+
 }

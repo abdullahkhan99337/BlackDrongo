@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>BlackDrongo Dashboard</title>
+    <link href="/css/dashboard-theme.css" rel="stylesheet">
+</head>
+<body class="dashboard-body">
+<div class="app-shell"
+     th:with="featureTotal=${#aggregates.sum(projectCards.![metrics.features])},
+              scenarioTotal=${#aggregates.sum(projectCards.![metrics.scenarios])},
+              successTotal=${#aggregates.sum(projectCards.![metrics.success])},
+              failureTotal=${#aggregates.sum(projectCards.![metrics.failure])}">
+    <aside class="app-sidebar">
+        <div class="brand">
+            <div class="brand-mark">B</div>
+            <span>BlackDrongo</span>
+        </div>
+
+        <div class="nav-section">
+            <p class="nav-title">Workspace</p>
+            <a class="nav-link active" href="/">Overview</a>
+            <a class="nav-link" href="/projects">Projects</a>
+        </div>
+
+        <div class="nav-section">
+            <p class="nav-title">Execution</p>
+            <a class="nav-link" href="/running-tests">Running Tests</a>
+        </div>
+
+    </aside>
+
+    <main class="app-main">
+        <header class="top-toolbar">
+            <div class="toolbar-meta">
+                <div class="crumb">Dashboard / Performance</div>
+                <h1 class="page-title">Project Analytics</h1>
+            </div>
+        </header>
+
+        <section class="stats-grid">
+            <article class="panel-card">
+                <p class="stat-label">Active Projects</p>
+                <p class="stat-value" th:text="${projectCount}">0</p>
+                <p class="stat-meta">Automation workspaces ready</p>
+            </article>
+            <article class="panel-card">
+                <p class="stat-label">Features</p>
+                <p class="stat-value" th:text="${featureTotal != null ? featureTotal : 0}">0</p>
+                <p class="stat-meta">Structured capability sets</p>
+            </article>
+            <article class="panel-card">
+                <p class="stat-label">Scenarios</p>
+                <p class="stat-value" th:text="${scenarioTotal != null ? scenarioTotal : 0}">0</p>
+                <p class="stat-meta">Executable validations</p>
+            </article>
+            <article class="panel-card">
+                <p class="stat-label">Pass Ratio</p>
+                <p class="stat-value"
+                   th:text="${(successTotal != null ? successTotal : 0) + (failureTotal != null ? failureTotal : 0) > 0
+                      ? #numbers.formatDecimal(((successTotal != null ? successTotal : 0) * 100.0) / ((successTotal != null ? successTotal : 0) + (failureTotal != null ? failureTotal : 0)), 1, 1) + '%'
+                      : '0.0%'}">0.0%</p>
+                <p class="stat-meta">Successful scenario runs</p>
+            </article>
+        </section>
+
+        <section class="content-card">
+            <div class="content-header">
+                <div>
+                    <h2 class="content-title">Overview Insights</h2>
+                    <div class="subtle">Use Projects page for full project list and management actions.</div>
+                </div>
+                <a class="btn btn-soft" href="/projects">Open Projects</a>
+            </div>
+
+            <div class="empty-state" th:if="${#lists.isEmpty(projectCards)}">
+                No projects yet. Create your first project to start adding features and scenarios.
+            </div>
+
+            <div class="metric-row" th:if="${!#lists.isEmpty(projectCards)}">
+                <span class="pill">Projects <strong th:text="${projectCount}">0</strong></span>
+                <span class="pill">Features <strong
+                        th:text="${featureTotal != null ? featureTotal : 0}">0</strong></span>
+                <span class="pill">Scenarios <strong
+                        th:text="${scenarioTotal != null ? scenarioTotal : 0}">0</strong></span>
+                <span class="pill ok">Pass <strong
+                        th:text="${successTotal != null ? successTotal : 0}">0</strong></span>
+                <span class="pill fail">Fail <strong
+                        th:text="${failureTotal != null ? failureTotal : 0}">0</strong></span>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

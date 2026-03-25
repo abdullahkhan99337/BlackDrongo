@@ -37,7 +37,7 @@ public class ConfigReader {
         }
     }
 
-    public String getProperty(String key) {
+    public String getOptionalProperty(String key) {
         if (properties == null) {
             synchronized (ConfigReader.class) {
                 if (properties == null) {
@@ -45,12 +45,28 @@ public class ConfigReader {
                 }
             }
         }
-        String value = properties.getProperty(key);
-        if (value != null) {
-            return value;
-        } else {
-            throw new RuntimeException(key + " not specified in the Configuration.properties file.");
+        String systemValue = System.getProperty(key);
+        if (systemValue != null && !systemValue.isBlank()) {
+            return systemValue;
         }
+        String envKey = key.toUpperCase().replace('.', '_');
+        String envValue = System.getenv(envKey);
+        if (envValue != null && !envValue.isBlank()) {
+            return envValue;
+        }
+        String value = properties.getProperty(key);
+        if (value != null && !value.isBlank()) {
+            return value;
+        }
+        return null;
+    }
+
+    public String getProperty(String key) {
+        String value = getOptionalProperty(key);
+        if (value != null && !value.isBlank()) {
+            return value;
+        }
+        throw new RuntimeException(key + " not specified in the Configuration.properties file.");
     }
 
 
