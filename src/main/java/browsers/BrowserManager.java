@@ -9,6 +9,7 @@ import org.openqa.selenium.WindowType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Duration;
 
 
 public class BrowserManager {
@@ -19,8 +20,24 @@ public class BrowserManager {
 
     private BrowserManager(){}
 
-    private void initDriver(String browserName){
-        tlDriver.set(DriverFactory.getInstance(browserName));
+    public static BrowserManager getInstance(){
+        if (browser == null){
+            synchronized (BrowserManager.class){
+                if (browser == null){
+                    browser = new BrowserManager();
+                }
+            }
+        }
+
+        if(tlDriver.get() == null){
+            ConfigReader config = ConfigReader.getInstance();
+            browser.initDriver(config.getProperty("browser"));
+            String maximize = config.getOptionalProperty("window.maximize");
+            if (maximize == null || Boolean.parseBoolean(maximize)) {
+                browser.maximizeBrowser();
+            }
+        }
+        return browser;
     }
 
     public WebDriver getDriver(){
@@ -228,20 +245,27 @@ public class BrowserManager {
         return this;
     }
 
-    public static BrowserManager getInstance(){
-        if (browser == null){
-            synchronized (BrowserManager.class){
-                if (browser == null){
-                    browser = new BrowserManager();
-                }
-            }
+    public static long parseLong(String value, long fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
         }
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid numeric value: " + value, e);
+        }
+    }
 
-        if(tlDriver.get() == null){
-            browser.initDriver(ConfigReader.getInstance().getProperty("browser"));
-            browser.maximizeBrowser();
-        }
-        return browser;
+    private void initDriver(String browserName){
+        WebDriver driver = DriverFactory.getInstance(browserName);
+        tlDriver.set(driver);
+        configureDriver(driver);
+    }
+
+    private void configureDriver(WebDriver driver) {
+        ConfigReader config = ConfigReader.getInstance();
+        long pageLoadSeconds = parseLong(config.getOptionalProperty("timeout.pageLoadSeconds"), 60);
+        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(Math.max(pageLoadSeconds, 0)));
     }
 
 

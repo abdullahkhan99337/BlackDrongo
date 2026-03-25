@@ -1,5 +1,6 @@
 package listeners;
 
+import browsers.ConfigReader;
 import org.testng.IRetryAnalyzer;
 import org.testng.ITestResult;
 
@@ -8,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class RetryAnalyzer implements IRetryAnalyzer {
 
-    private static final int MAX_RETRY_COUNT = Integer.parseInt(System.getProperty("retry.count", "1"));
+    private static final int MAX_RETRY_COUNT = resolveMaxRetryCount();
     private static final Map<String, Integer> RETRY_TRACKER = new ConcurrentHashMap<>();
 
     @Override
@@ -20,6 +21,19 @@ public class RetryAnalyzer implements IRetryAnalyzer {
             return true;
         }
         return false;
+    }
+
+    private static int resolveMaxRetryCount() {
+        String configured = ConfigReader.getInstance().getOptionalProperty("retry.count");
+        if (configured == null || configured.isBlank()) {
+            return 1;
+        }
+        try {
+            int value = Integer.parseInt(configured.trim());
+            return Math.max(value, 0);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("retry.count must be a number but found: " + configured, e);
+        }
     }
 
     private String buildKey(ITestResult result) {

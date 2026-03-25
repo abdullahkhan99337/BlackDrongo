@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Batch Run</title>
+    <link href="/css/dashboard-theme.css" rel="stylesheet">
+</head>
+<body class="dashboard-body">
+<div class="app-shell">
+    <aside class="app-sidebar">
+        <div class="brand">
+            <div class="brand-mark">B</div>
+            <span>BlackDrongo</span>
+        </div>
+        <div class="nav-section">
+            <p class="nav-title">Workspace</p>
+            <a class="nav-link active" href="/">Overview</a>
+            <a class="nav-link" href="/projects">Projects</a>
+        </div>
+        <div class="nav-section">
+            <p class="nav-title">Execution</p>
+            <a class="nav-link" href="/running-tests">Running Tests</a>
+        </div>
+    </aside>
+    <main class="app-main">
+        <header class="top-toolbar">
+            <div class="toolbar-meta">
+                <div class="crumb">Execution / Batch</div>
+                <h1 class="page-title">Batch Run Results</h1>
+            </div>
+        </header>
+        <section class="content-card">
+            <p th:if="${message != null}" th:text="${message}"></p>
+            <div class="empty-state" th:if="${#lists.isEmpty(batchResults)}">
+                No scenarios were executed.
+            </div>
+            <div th:if="${!#lists.isEmpty(batchResults)}">
+                <div class="panel-card" style="margin-bottom:12px;" th:each="result : ${batchResults}">
+                    <h3 style="margin:0 0 8px;" th:text="${result.scenarioName}">Scenario</h3>
+                    <div class="subtle">
+                        Engine: <strong th:text="${result.engine}">selenium</strong> |
+                        Exit code: <strong th:text="${result.exitCode}">0</strong>
+                    </div>
+                    <pre style="white-space:pre-wrap; margin:10px 0 0; color:#dce5ff;" th:text="${result.summary}">Summary</pre>
+                </div>
+            </div>
+            <a class="btn btn-primary" th:href="${returnUrl != null} ? ${returnUrl} : '/'">Back</a>
+        </section>
+    </main>
+</div>
+</body>
+</html>

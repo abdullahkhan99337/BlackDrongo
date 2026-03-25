@@ -1,0 +1,3 @@
+ui-generator/data/
+ui-generator/data/*.db
+ui-generator/data/*.db-*
