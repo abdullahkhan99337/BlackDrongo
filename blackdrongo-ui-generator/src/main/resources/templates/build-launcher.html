@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Create Build</title>
+    <link href="/css/dashboard-theme.css" rel="stylesheet">
+    <style>
+        .build-grid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr); gap:16px; }
+        .build-stack { display:grid; gap:16px; }
+        .build-panel { border:1px solid rgba(122,143,218,.24); border-radius:14px; background:rgba(10,16,41,.58); padding:14px; }
+        .build-panel-title { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:10px; font-weight:700; }
+        .required-mark { color:#fda4af; margin-left:4px; }
+        .field-hint { margin-top:6px; font-size:12px; color:var(--muted); }
+        .field-error { margin-top:6px; font-size:12px; color:#fca5a5; }
+        .field-error[hidden] { display:none; }
+        .field-invalid { border-color:rgba(248,113,113,.75) !important; box-shadow:0 0 0 1px rgba(248,113,113,.24); }
+        .schedule-inputs { display:grid; gap:10px; }
+        .schedule-row { display:grid; gap:10px; }
+        .schedule-row-date { grid-template-columns:1fr 1fr 1fr; }
+        .schedule-row-time { grid-template-columns:1fr 1fr; }
+        .schedule-section[hidden] { display:none; }
+        .selection-preview { padding:14px; border:1px solid rgba(122,143,218,.18); border-radius:12px; background:rgba(6,10,28,.32); min-height:72px; display:grid; gap:10px; }
+        .selection-preview strong { color:var(--text); }
+        .selection-list { display:flex; flex-wrap:wrap; gap:8px; }
+        .selection-chip { display:inline-flex; align-items:center; max-width:100%; padding:6px 10px; border-radius:999px; background:rgba(122,143,218,.12); border:1px solid rgba(122,143,218,.22); color:var(--text); font-size:12px; line-height:1.3; }
+        .selection-chip span { color:var(--muted); margin-left:6px; }
+        .selector-box { border:1px solid rgba(122,143,218,.18); border-radius:12px; padding:12px; max-height:420px; overflow:auto; background:rgba(6,10,28,.45); }
+        .selector-item { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; }
+        .selector-item small { color:var(--muted); display:block; }
+        .selector-toolbar { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+        .selector-toolbar input, .selector-toolbar select { margin:0; }
+        .table-toolbar { display:flex; gap:10px; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; }
+        .table-toolbar input { margin:0; max-width:260px; }
+        .table-pagination { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:12px; flex-wrap:wrap; }
+        .u-hidden-inputs { display:none; }
+        .build-modal-box { width:min(820px, calc(100vw - 32px)); max-height:min(78vh, 760px); overflow:auto; }
+        .build-banner { margin-bottom:14px; }
+        .build-table td, .build-table th { white-space:normal; }
+        @media (max-width: 720px) {
+            .schedule-row-date,
+            .schedule-row-time { grid-template-columns:1fr; }
+        }
+        @media (max-width: 1080px) { .build-grid { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body class="dashboard-body">
+<div class="app-shell">
+    <aside class="app-sidebar" th:replace="~{fragments/sidebar :: sidebar('builds-new')}"></aside>
+    <main class="app-main">
+        <header class="top-toolbar">
+            <th:block
+                    th:replace="~{fragments/page-header :: toolbar_meta('Builds / Launcher', 'Create Build')}"></th:block>
+            <div class="toolbar-controls">
+                <a class="btn btn-soft" href="/projects/new">Create Project</a>
+            </div>
+        </header>
+
+        <section class="save-banner build-banner auto-dismiss-banner"
+                 th:if="${param.banner != null and param.banner[0] == 'queued'}">
+            Build queued successfully.
+        </section>
+        <section class="save-banner build-banner auto-dismiss-banner"
+                 th:if="${param.banner != null and param.banner[0] == 'scheduled'}">
+            Build schedule saved successfully.
+        </section>
+        <section class="content-card build-banner auto-dismiss-banner"
+                 th:if="${param.banner != null and param.banner[0] == 'schedule_cancelled'}">
+            Schedule cancelled.
+        </section>
+        <section class="content-card build-banner" th:if="${buildError != null}">
+            <strong>Unable to create build.</strong>
+            <div class="field-hint" style="margin-top:8px;" th:text="${buildError}">Validation error</div>
+        </section>
+
+        <div class="build-grid">
+            <section class="content-card">
+                <form id="buildLaunchForm" method="post" novalidate th:action="@{/builds/launch}"
+                      th:object="${buildRequest}">
+                    <div class="build-panel">
+                        <div class="build-panel-title">Build Setup</div>
+                        <label for="buildName">Build name<span class="required-mark">*</span></label>
+                        <input id="buildName" placeholder="checkout-smoke-1630" required th:field="*{buildName}"
+                               type="text"/>
+                        <div class="field-hint">Use a clear run name so history stays readable.</div>
+                        <div class="field-error" hidden id="buildNameError">Build name is required.</div>
+                        <div class="grid-2">
+                            <div>
+                                <label for="buildProject">Project<span class="required-mark">*</span></label>
+                                <select id="buildProject" required th:field="*{projectId}">
+                                    <option value="">Select project</option>
+                                    <option th:each="project : ${buildProjects}" th:text="${project.name()}"
+                                            th:value="${project.id()}">Project
+                                    </option>
+                                </select>
+                                <div class="field-error" hidden id="projectError">Project is required.</div>
+                            </div>
+                            <div>
+                                <label for="targetType">Target type<span class="required-mark">*</span></label>
+                                <select id="targetType" th:field="*{targetType}">
+                                    <option value="PROJECT">Entire project</option>
+                                    <option value="FEATURES">Selected features</option>
+                                    <option value="SCENARIOS">Selected scenarios</option>
+                                    <option value="TAGS">Tag filter</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div>
+                                <label>Execution mode</label>
+                                <label class="toggle">
+                                    <input class="toggle-input" th:field="*{parallel}" type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Run in parallel</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label>Headless override</label>
+                                <select th:field="*{headlessMode}">
+                                    <option value="DEFAULT">Use project default</option>
+                                    <option value="HEADED">Force headed</option>
+                                    <option value="HEADLESS">Force headless</option>
+                                </select>
+                            </div>
+                        </div>
+                        <label>Additional Maven args</label>
+                        <input placeholder="-DretryCount=2" th:field="*{mvnArgs}" type="text"/>
+                    </div>
+
+                    <div class="build-panel" style="margin-top:14px;">
+                        <div class="build-panel-title">What Will Run</div>
+                        <div class="selection-preview" id="selectionPreview">
+                            <strong>Entire project</strong>
+                            <div class="field-hint">All scenarios in the selected project will run.</div>
+                        </div>
+                        <div class="field-error" hidden id="scopeError">This target type needs a selection before
+                            launch.
+                        </div>
+                        <div class="u-hidden-inputs" id="selectedFeatureInputs"></div>
+                        <div class="u-hidden-inputs" id="selectedScenarioInputs"></div>
+                        <div id="tagFilterBlock" style="margin-top:12px;">
+                            <label for="buildTags">Tags<span class="required-mark">*</span></label>
+                            <input id="buildTags" placeholder="@smoke @regression" th:field="*{tags}" type="text"/>
+                            <div class="field-hint">Used only when target type is <code>Tag filter</code>.</div>
+                        </div>
+                    </div>
+
+                    <div class="build-panel" style="margin-top:14px;">
+                        <div class="build-panel-title">Schedule</div>
+                        <div class="grid-2">
+                            <div>
+                                <label>Launch mode</label>
+                                <select id="scheduleMode" th:field="*{scheduleMode}">
+                                    <option value="NOW">Run now</option>
+                                    <option value="ONCE">One-time schedule</option>
+                                    <option value="DAILY">Daily</option>
+                                    <option value="WEEKLY">Weekly</option>
+                                </select>
+                            </div>
+                            <div id="scheduleAtBlock">
+                                <label for="scheduledAt">Scheduled time<span class="required-mark">*</span></label>
+                                <div class="schedule-inputs">
+                                    <div class="schedule-section" id="onceScheduleSection">
+                                        <div class="schedule-row schedule-row-date">
+                                            <select id="scheduleDay">
+                                                <option value="">Day</option>
+                                            </select>
+                                            <select id="scheduleMonth">
+                                                <option value="">Month</option>
+                                            </select>
+                                            <select id="scheduleYear">
+                                                <option value="">Year</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="schedule-section" hidden id="weeklyScheduleSection">
+                                        <div class="schedule-row">
+                                            <select id="scheduleWeekday">
+                                                <option value="">Day of week</option>
+                                                <option value="1">Monday</option>
+                                                <option value="2">Tuesday</option>
+                                                <option value="3">Wednesday</option>
+                                                <option value="4">Thursday</option>
+                                                <option value="5">Friday</option>
+                                                <option value="6">Saturday</option>
+                                                <option value="7">Sunday</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="schedule-row schedule-row-time">
+                                        <select id="scheduleHour">
+                                            <option value="">Hour</option>
+                                        </select>
+                                        <select id="scheduleMinute">
+                                            <option value="">Minute</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <input id="scheduledAt" th:field="*{scheduledAt}" type="hidden"/>
+                                <div class="field-error" hidden id="scheduleError">Choose a future date and time.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-row" style="margin-top:14px;">
+                        <button class="btn btn-primary" type="submit">Create Build</button>
+                        <a class="btn btn-link" href="/projects">Cancel</a>
+                    </div>
+                </form>
+            </section>
+
+            <aside class="build-stack">
+                <section class="content-card">
+                    <div class="build-panel-title">Upcoming Schedules</div>
+                    <div class="empty-state" th:if="${#lists.isEmpty(buildSchedules)}">No schedules yet.</div>
+                    <div class="table-wrap" th:if="${!#lists.isEmpty(buildSchedules)}">
+                        <div class="table-toolbar">
+                            <input id="scheduleSearchInput" placeholder="Search schedules" type="text">
+                            <span class="pill">Showing 5 per page</span>
+                        </div>
+                        <table class="build-table" id="scheduleTable">
+                            <thead>
+                            <tr>
+                                <th>Build</th>
+                                <th>Next Run</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:attr="data-search=${#strings.toLowerCase((schedule.buildName() ?: '') + ' ' + (schedule.targetSummary() ?: '') + ' ' + (schedule.status() ?: '') + ' ' + (schedule.nextRunAt() ?: ''))}"
+                                th:each="schedule : ${buildSchedules}">
+                                <td><strong th:text="${schedule.buildName()}">Build</strong>
+                                    <div class="subtle" th:text="${schedule.targetSummary()}">Target</div>
+                                </td>
+                                <td th:text="${schedule.nextRunAt() == null ? '-' : schedule.nextRunAt()}">-</td>
+                                <td th:text="${schedule.status()}">ACTIVE</td>
+                                <td>
+                                    <form method="post"
+                                          th:action="@{'/builds/schedules/' + ${schedule.id()} + '/cancel'}">
+                                        <button class="btn btn-soft" th:disabled="${schedule.status() != 'ACTIVE'}"
+                                                type="submit">Cancel
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <div class="table-pagination">
+                            <span class="subtle" id="schedulePaginationMeta">0 results</span>
+                            <button class="btn btn-soft" id="schedulePrevBtn" type="button">Previous</button>
+                            <button class="btn btn-soft" id="scheduleNextBtn" type="button">Next</button>
+                        </div>
+                    </div>
+                </section>
+                <section class="content-card">
+                    <div class="build-panel-title">Recent Builds</div>
+                    <div class="empty-state" th:if="${#lists.isEmpty(recentBuilds)}">No builds launched yet.</div>
+                    <div class="table-wrap" th:if="${!#lists.isEmpty(recentBuilds)}">
+                        <div class="table-toolbar">
+                            <input id="recentBuildSearchInput" placeholder="Search recent builds" type="text">
+                            <span class="pill">Showing 5 per page</span>
+                        </div>
+                        <table class="build-table" id="recentBuildTable">
+                            <thead>
+                            <tr>
+                                <th>Build</th>
+                                <th>Status</th>
+                                <th>Details</th>
+                                <th>When</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:attr="data-search=${#strings.toLowerCase((run.buildName() ?: '') + ' ' + (run.targetSummary() ?: '') + ' ' + (run.status() ?: '') + ' ' + (run.createdAt() ?: ''))}"
+                                th:each="run : ${recentBuilds}">
+                                <td>
+                                    <strong th:text="${run.buildName()}">Build</strong>
+                                    <div class="subtle" th:text="${run.targetSummary()}">Target</div>
+                                </td>
+                                <td th:text="${run.status()}">QUEUED</td>
+                                <td>
+                                    <div th:text="${#strings.isEmpty(run.message()) ? '-' : run.message()}">-</div>
+                                    <div class="subtle"
+                                         th:text="${'Trigger: ' + (#strings.isEmpty(run.triggerType()) ? '-' : run.triggerType())}">
+                                        Trigger
+                                    </div>
+                                </td>
+                                <td>
+                                    <div th:text="${#strings.isEmpty(run.createdAt()) ? '-' : run.createdAt()}">-</div>
+                                    <div class="subtle"
+                                         th:text="${#strings.isEmpty(run.completedAt()) ? 'Completed: -' : 'Completed: ' + run.completedAt()}">
+                                        Completed: -
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <div class="table-pagination">
+                            <span class="subtle" id="recentBuildPaginationMeta">0 results</span>
+                            <button class="btn btn-soft" id="recentBuildPrevBtn" type="button">Previous</button>
+                            <button class="btn btn-soft" id="recentBuildNextBtn" type="button">Next</button>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </main>
+</div>
+
+<div class="modal" id="featureSelectorModal" onclick="closeSelectorModal(event, 'featureSelectorModal')">
+    <div class="modal-content build-modal-box" onclick="event.stopPropagation();">
+        <div class="modal-header">
+            <h2>Select Features</h2>
+            <button class="modal-close modal-close-icon" onclick="closeNamedModal('featureSelectorModal')"
+                    type="button">&times;
+            </button>
+        </div>
+        <div class="selector-toolbar">
+            <input id="featureSearchInput" placeholder="Search features" type="text"/>
+        </div>
+        <div class="selector-box" id="featureSelector"></div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="applyFeatureSelection()" type="button">Apply</button>
+            <button class="btn btn-soft" onclick="closeNamedModal('featureSelectorModal')" type="button">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="scenarioSelectorModal" onclick="closeSelectorModal(event, 'scenarioSelectorModal')">
+    <div class="modal-content build-modal-box" onclick="event.stopPropagation();">
+        <div class="modal-header">
+            <h2>Select Scenarios</h2>
+            <button class="modal-close modal-close-icon" onclick="closeNamedModal('scenarioSelectorModal')"
+                    type="button">&times;
+            </button>
+        </div>
+        <div class="selector-toolbar">
+            <select id="scenarioFeatureFilter"></select>
+            <input id="scenarioSearchInput" placeholder="Search scenarios" type="text"/>
+        </div>
+        <div class="selector-box" id="scenarioSelector"></div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="applyScenarioSelection()" type="button">Apply</button>
+            <button class="btn btn-soft" onclick="closeNamedModal('scenarioSelectorModal')" type="button">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="tagSelectorModal" onclick="closeSelectorModal(event, 'tagSelectorModal')">
+    <div class="modal-content" onclick="event.stopPropagation();">
+        <div class="modal-header">
+            <h2>Tag Filter</h2>
+            <button class="modal-close modal-close-icon" onclick="closeNamedModal('tagSelectorModal')" type="button">
+                &times;
+            </button>
+        </div>
+        <label>Tags</label>
+        <input id="tagSelectorInput" placeholder="@smoke @regression" type="text"/>
+        <div class="hint" style="margin-top:8px;">Use spaces or commas between tags.</div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="applyTagSelection()" type="button">Apply</button>
+            <button class="btn btn-soft" onclick="closeNamedModal('tagSelectorModal')" type="button">Close</button>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const buildProjects = /*[[${buildProjects}]]*/ [];
+    const initialFeatureIds = /*[[${buildRequest.featureIds}]]*/ [];
+    const initialScenarioIds = /*[[${buildRequest.scenarioIds}]]*/ [];
+    const TABLE_PAGE_SIZE = 5;
+    let selectedFeatureIds = Array.isArray(initialFeatureIds) ? [...initialFeatureIds] : [];
+    let selectedScenarioIds = Array.isArray(initialScenarioIds) ? [...initialScenarioIds] : [];
+    let schedulePage = 1;
+    let recentBuildPage = 1;
+    let scheduleQuery = '';
+    let recentBuildQuery = '';
+
+    function setFieldError(id, message) {
+        const node = document.getElementById(id);
+        if (!node) {
+            return;
+        }
+        node.textContent = message;
+        node.hidden = !message;
+    }
+
+    function setInvalidState(element, invalid) {
+        if (!element) {
+            return;
+        }
+        element.classList.toggle('field-invalid', !!invalid);
+    }
+
+    function renderSelectors() {
+        const projectId = document.getElementById('buildProject')?.value || '';
+        const targetType = document.getElementById('targetType')?.value || 'PROJECT';
+        const featureHost = document.getElementById('featureSelector');
+        const scenarioHost = document.getElementById('scenarioSelector');
+        const tagBlock = document.getElementById('tagFilterBlock');
+        const project = buildProjects.find((item) => item.id === projectId);
+        if (!featureHost || !scenarioHost) {
+            return;
+        }
+        if (!project) {
+            featureHost.innerHTML = '<div class="subtle">Select a project first.</div>';
+            scenarioHost.innerHTML = '<div class="subtle">Select a project first.</div>';
+            selectedFeatureIds = [];
+            selectedScenarioIds = [];
+            syncSelectedInputs();
+            clearSelectionErrors();
+            updatePreview();
+            return;
+        }
+        const features = Array.isArray(project.features) ? project.features : [];
+        featureHost.innerHTML = features.length ? features.map((feature) => `
+            <label class="selector-item" data-feature-name="${escapeHtml((feature.name || '').toLowerCase())}">
+                <input type="checkbox" value="${feature.id}" ${selectedFeatureIds.includes(feature.id) ? 'checked' : ''}>
+                <span><strong>${escapeHtml(feature.name)}</strong><small>${escapeHtml(feature.baseUrl || '-')}</small></span>
+            </label>
+        `).join('') : '<div class="subtle">No features available.</div>';
+        const scenarios = features.flatMap((feature) => (feature.scenarios || []).map((scenario) => ({
+            featureName: feature.name,
+            featureId: feature.id,
+            ...scenario
+        })));
+        const featureFilter = document.getElementById('scenarioFeatureFilter');
+        if (featureFilter) {
+            featureFilter.innerHTML = '<option value="">All features</option>' + features.map((feature) => `<option value="${feature.id}">${escapeHtml(feature.name)}</option>`).join('');
+        }
+        scenarioHost.innerHTML = scenarios.length ? scenarios.map((scenario) => `
+            <label class="selector-item" data-scenario-name="${escapeHtml((scenario.name || '').toLowerCase())}" data-feature-id="${scenario.featureId}">
+                <input type="checkbox" value="${scenario.id}" ${selectedScenarioIds.includes(scenario.id) ? 'checked' : ''}>
+                <span><strong>${escapeHtml(scenario.name)}</strong><small>${escapeHtml(scenario.featureName)}${scenario.tags ? ' · ' + escapeHtml(scenario.tags) : ''}</small></span>
+            </label>
+        `).join('') : '<div class="subtle">No scenarios available.</div>';
+        if (tagBlock) {
+            tagBlock.style.display = targetType === 'TAGS' ? 'block' : 'none';
+        }
+        toggleScopeButtons(targetType, !!projectId);
+        filterFeatureOptions();
+        filterScenarioOptions();
+        clearSelectionErrors();
+        updatePreview();
+    }
+
+    function syncTagPopupInput() {
+        const popupInput = document.getElementById('tagSelectorInput');
+        const formInput = document.querySelector('[name="tags"]');
+        if (popupInput && formInput) {
+            popupInput.value = formInput.value || '';
+        }
+    }
+
+    function openTargetSelector(targetType) {
+        if (!document.getElementById('buildProject')?.value) {
+            return;
+        }
+        if (targetType === 'FEATURES') {
+            openNamedModal('featureSelectorModal');
+            return;
+        }
+        if (targetType === 'SCENARIOS') {
+            openNamedModal('scenarioSelectorModal');
+            return;
+        }
+        if (targetType === 'TAGS') {
+            syncTagPopupInput();
+            openNamedModal('tagSelectorModal');
+        }
+    }
+
+    function updatePreview() {
+        const selectionPreview = document.getElementById('selectionPreview');
+        const projectId = document.getElementById('buildProject')?.value || '';
+        const targetType = document.getElementById('targetType')?.value || 'PROJECT';
+        const project = buildProjects.find((item) => item.id === projectId);
+        if (!project) {
+            if (selectionPreview) {
+                selectionPreview.innerHTML = '<strong>No target selected yet.</strong><div class="field-hint">Choose a project first, then pick what should run.</div>';
+            }
+            return;
+        }
+        const featureCount = selectedFeatureIds.length;
+        const scenarioCount = selectedScenarioIds.length;
+        const tags = document.querySelector('[name="tags"]')?.value || '';
+        const features = Array.isArray(project.features) ? project.features : [];
+        const selectedFeatures = features.filter((feature) => selectedFeatureIds.includes(feature.id));
+        const selectedScenarios = features.flatMap((feature) => (feature.scenarios || []).filter((scenario) => selectedScenarioIds.includes(scenario.id)).map((scenario) => ({
+            name: scenario.name,
+            featureName: feature.name
+        })));
+        if (selectionPreview) {
+            selectionPreview.innerHTML = buildSelectionPreview(targetType, selectedFeatures, selectedScenarios, tags);
+        }
+    }
+
+    function syncScheduleBlock() {
+        const mode = document.getElementById('scheduleMode')?.value || 'NOW';
+        const block = document.getElementById('scheduleAtBlock');
+        const onceSection = document.getElementById('onceScheduleSection');
+        const weeklySection = document.getElementById('weeklyScheduleSection');
+        if (block) {
+            block.style.display = mode === 'NOW' ? 'none' : 'block';
+        }
+        if (onceSection) {
+            onceSection.hidden = mode !== 'ONCE';
+        }
+        if (weeklySection) {
+            weeklySection.hidden = mode !== 'WEEKLY';
+        }
+        if (mode === 'NOW') {
+            setFieldError('scheduleError', '');
+            setInvalidState(document.getElementById('scheduleDay'), false);
+            setInvalidState(document.getElementById('scheduleMonth'), false);
+            setInvalidState(document.getElementById('scheduleYear'), false);
+            setInvalidState(document.getElementById('scheduleWeekday'), false);
+            setInvalidState(document.getElementById('scheduleHour'), false);
+            setInvalidState(document.getElementById('scheduleMinute'), false);
+        }
+        syncScheduleHiddenInput();
+        updatePreview();
+    }
+
+    function syncScheduleHiddenInput() {
+        const dayInput = document.getElementById('scheduleDay');
+        const monthInput = document.getElementById('scheduleMonth');
+        const yearInput = document.getElementById('scheduleYear');
+        const weekdayInput = document.getElementById('scheduleWeekday');
+        const hourInput = document.getElementById('scheduleHour');
+        const minuteInput = document.getElementById('scheduleMinute');
+        const scheduleMode = document.getElementById('scheduleMode')?.value || 'NOW';
+        const hiddenInput = document.getElementById('scheduledAt');
+        if (!dayInput || !monthInput || !yearInput || !weekdayInput || !hourInput || !minuteInput || !hiddenInput) {
+            return;
+        }
+        const dayValue = dayInput.value || '';
+        const monthValue = monthInput.value || '';
+        const yearValue = yearInput.value || '';
+        const weekdayValue = weekdayInput.value || '';
+        const hourValue = hourInput.value || '';
+        const minuteValue = minuteInput.value || '';
+        if (scheduleMode === 'ONCE') {
+            hiddenInput.value = dayValue && monthValue && yearValue && hourValue && minuteValue
+                ? `${yearValue}-${monthValue}-${dayValue}T${hourValue}:${minuteValue}`
+                : '';
+            return;
+        }
+        if (scheduleMode === 'DAILY') {
+            hiddenInput.value = hourValue && minuteValue ? buildNextDailyStamp(hourValue, minuteValue) : '';
+            return;
+        }
+        if (scheduleMode === 'WEEKLY') {
+            hiddenInput.value = weekdayValue && hourValue && minuteValue ? buildNextWeeklyStamp(weekdayValue, hourValue, minuteValue) : '';
+            return;
+        }
+        hiddenInput.value = '';
+    }
+
+    function hydrateScheduleInputs() {
+        const dayInput = document.getElementById('scheduleDay');
+        const monthInput = document.getElementById('scheduleMonth');
+        const yearInput = document.getElementById('scheduleYear');
+        const weekdayInput = document.getElementById('scheduleWeekday');
+        const hourInput = document.getElementById('scheduleHour');
+        const minuteInput = document.getElementById('scheduleMinute');
+        const scheduleMode = document.getElementById('scheduleMode')?.value || 'NOW';
+        const hiddenInput = document.getElementById('scheduledAt');
+        if (!dayInput || !monthInput || !yearInput || !weekdayInput || !hourInput || !minuteInput || !hiddenInput || !hiddenInput.value) {
+            return;
+        }
+        const [dateValue, timeValue] = hiddenInput.value.split('T');
+        if (dateValue && scheduleMode === 'ONCE') {
+            const [year, month, day] = dateValue.split('-');
+            yearInput.value = year || '';
+            monthInput.value = month || '';
+            dayInput.value = day || '';
+        }
+        if (timeValue) {
+            const [hour, minute] = timeValue.split(':');
+            hourInput.value = hour || '';
+            minuteInput.value = minute || '';
+        }
+        if (dateValue && scheduleMode === 'WEEKLY') {
+            const date = new Date(`${dateValue}T00:00:00`);
+            const weekday = date.getDay() === 0 ? 7 : date.getDay();
+            weekdayInput.value = String(weekday);
+        }
+    }
+
+    function populateScheduleOptions() {
+        populateSelectRange('scheduleDay', 1, 31);
+        populateSelectRange('scheduleYear', new Date().getFullYear(), new Date().getFullYear() + 2);
+        populateSelectRange('scheduleHour', 0, 23);
+        populateSelectRange('scheduleMinute', 0, 55, 5);
+        const monthSelect = document.getElementById('scheduleMonth');
+        if (monthSelect && monthSelect.options.length <= 1) {
+            ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+                .forEach((label, index) => {
+                    const option = document.createElement('option');
+                    option.value = String(index + 1).padStart(2, '0');
+                    option.textContent = label;
+                    monthSelect.appendChild(option);
+                });
+        }
+    }
+
+    function populateSelectRange(id, start, end, step = 1) {
+        const select = document.getElementById(id);
+        if (!select || select.options.length > 1) {
+            return;
+        }
+        for (let value = start; value <= end; value += step) {
+            const option = document.createElement('option');
+            option.value = String(value).padStart(2, '0');
+            option.textContent = String(value).padStart(2, '0');
+            select.appendChild(option);
+        }
+    }
+
+    function clearScheduleErrors() {
+        setFieldError('scheduleError', '');
+        setInvalidState(document.getElementById('scheduleDay'), false);
+        setInvalidState(document.getElementById('scheduleMonth'), false);
+        setInvalidState(document.getElementById('scheduleYear'), false);
+        setInvalidState(document.getElementById('scheduleWeekday'), false);
+        setInvalidState(document.getElementById('scheduleHour'), false);
+        setInvalidState(document.getElementById('scheduleMinute'), false);
+    }
+
+    function buildNextDailyStamp(hourValue, minuteValue) {
+        const now = new Date();
+        const scheduled = new Date(now);
+        scheduled.setSeconds(0, 0);
+        scheduled.setHours(Number(hourValue), Number(minuteValue), 0, 0);
+        if (scheduled.getTime() <= now.getTime()) {
+            scheduled.setDate(scheduled.getDate() + 1);
+        }
+        return formatDateTimeLocalValue(scheduled);
+    }
+
+    function buildNextWeeklyStamp(weekdayValue, hourValue, minuteValue) {
+        const now = new Date();
+        const scheduled = new Date(now);
+        scheduled.setSeconds(0, 0);
+        scheduled.setHours(Number(hourValue), Number(minuteValue), 0, 0);
+        const currentWeekday = scheduled.getDay() === 0 ? 7 : scheduled.getDay();
+        let offset = Number(weekdayValue) - currentWeekday;
+        if (offset < 0 || (offset === 0 && scheduled.getTime() <= now.getTime())) {
+            offset += 7;
+        }
+        scheduled.setDate(scheduled.getDate() + offset);
+        return formatDateTimeLocalValue(scheduled);
+    }
+
+    function formatDateTimeLocalValue(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hour = String(date.getHours()).padStart(2, '0');
+        const minute = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hour}:${minute}`;
+    }
+
+    function getTableRows(tableId) {
+        return Array.from(document.querySelectorAll(`#${tableId} tbody tr`));
+    }
+
+    function getFilteredTableRows(tableId, query) {
+        const normalizedQuery = (query || '').trim().toLowerCase();
+        return getTableRows(tableId).filter((row) => {
+            const haystack = ((row.dataset.search || '') + ' ' + (row.textContent || '')).toLowerCase();
+            return !normalizedQuery || haystack.includes(normalizedQuery);
+        });
+    }
+
+    function renderPagedTable(tableId, query, page, metaId, prevBtnId, nextBtnId) {
+        const allRows = getTableRows(tableId);
+        const meta = document.getElementById(metaId);
+        const prevBtn = document.getElementById(prevBtnId);
+        const nextBtn = document.getElementById(nextBtnId);
+        if (!allRows.length) {
+            if (meta) {
+                meta.textContent = '0 results';
+            }
+            if (prevBtn) {
+                prevBtn.disabled = true;
+            }
+            if (nextBtn) {
+                nextBtn.disabled = true;
+            }
+            return 1;
+        }
+        const filteredRows = getFilteredTableRows(tableId, query);
+        const totalPages = Math.max(1, Math.ceil(filteredRows.length / TABLE_PAGE_SIZE));
+        const safePage = Math.min(Math.max(1, page), totalPages);
+        allRows.forEach((row) => {
+            row.style.display = 'none';
+        });
+        filteredRows.slice((safePage - 1) * TABLE_PAGE_SIZE, safePage * TABLE_PAGE_SIZE).forEach((row) => {
+            row.style.display = '';
+        });
+        if (meta) {
+            meta.textContent = filteredRows.length
+                ? `${filteredRows.length} result(s) · Page ${safePage} of ${totalPages}`
+                : '0 results';
+        }
+        if (prevBtn) {
+            prevBtn.disabled = safePage <= 1;
+        }
+        if (nextBtn) {
+            nextBtn.disabled = safePage >= totalPages;
+        }
+        return safePage;
+    }
+
+    function renderScheduleTable() {
+        schedulePage = renderPagedTable('scheduleTable', scheduleQuery, schedulePage, 'schedulePaginationMeta', 'schedulePrevBtn', 'scheduleNextBtn');
+    }
+
+    function renderRecentBuildTable() {
+        recentBuildPage = renderPagedTable('recentBuildTable', recentBuildQuery, recentBuildPage, 'recentBuildPaginationMeta', 'recentBuildPrevBtn', 'recentBuildNextBtn');
+    }
+
+    function toggleScopeButtons(targetType, enabled) {
+        return enabled && targetType;
+    }
+
+    function syncSelectedInputs() {
+        const featureInputs = document.getElementById('selectedFeatureInputs');
+        const scenarioInputs = document.getElementById('selectedScenarioInputs');
+        if (featureInputs) {
+            featureInputs.innerHTML = selectedFeatureIds.map((id) => `<input name="featureIds" type="hidden" value="${escapeHtml(id)}">`).join('');
+        }
+        if (scenarioInputs) {
+            scenarioInputs.innerHTML = selectedScenarioIds.map((id) => `<input name="scenarioIds" type="hidden" value="${escapeHtml(id)}">`).join('');
+        }
+    }
+
+    function openNamedModal(id) {
+        const modal = document.getElementById(id);
+        if (!modal) {
+            return;
+        }
+        modal.classList.add('open');
+        document.body.classList.add('modal-open');
+    }
+
+    function closeNamedModal(id) {
+        const modal = document.getElementById(id);
+        if (!modal) {
+            return;
+        }
+        modal.classList.remove('open');
+        document.body.classList.remove('modal-open');
+    }
+
+    function closeSelectorModal(event, id) {
+        if (event.target && event.target.id === id) {
+            closeNamedModal(id);
+        }
+    }
+
+    function applyFeatureSelection() {
+        selectedFeatureIds = Array.from(document.querySelectorAll('#featureSelector input:checked')).map((input) => input.value);
+        syncSelectedInputs();
+        clearSelectionErrors();
+        closeNamedModal('featureSelectorModal');
+        updatePreview();
+    }
+
+    function applyScenarioSelection() {
+        selectedScenarioIds = Array.from(document.querySelectorAll('#scenarioSelector input:checked')).map((input) => input.value);
+        syncSelectedInputs();
+        clearSelectionErrors();
+        closeNamedModal('scenarioSelectorModal');
+        updatePreview();
+    }
+
+    function applyTagSelection() {
+        const popupInput = document.getElementById('tagSelectorInput');
+        const formInput = document.querySelector('[name="tags"]');
+        if (popupInput && formInput) {
+            formInput.value = popupInput.value;
+        }
+        clearSelectionErrors();
+        closeNamedModal('tagSelectorModal');
+        updatePreview();
+    }
+
+    function clearSelectionErrors() {
+        setFieldError('scopeError', '');
+        setInvalidState(document.getElementById('targetType'), false);
+        setInvalidState(document.querySelector('[name="tags"]'), false);
+    }
+
+    function buildSelectionPreview(targetType, selectedFeatures, selectedScenarios, tags) {
+        if (targetType === 'FEATURES') {
+            if (!selectedFeatures.length) {
+                return '<strong>No features selected</strong><div class="field-hint">Choose one or more features for this build.</div>';
+            }
+            const chips = selectedFeatures.slice(0, 6)
+                .map((feature) => `<div class="selection-chip">${escapeHtml(feature.name)}</div>`)
+                .join('');
+            const extra = selectedFeatures.length > 6 ? `<div class="field-hint">+${selectedFeatures.length - 6} more features selected</div>` : '';
+            return `<strong>${selectedFeatures.length} features selected</strong><div class="selection-list">${chips}</div>${extra}`;
+        }
+        if (targetType === 'SCENARIOS') {
+            if (!selectedScenarios.length) {
+                return '<strong>No scenarios selected</strong><div class="field-hint">Choose one or more scenarios for this build.</div>';
+            }
+            const chips = selectedScenarios.slice(0, 6)
+                .map((scenario) => `<div class="selection-chip">${escapeHtml(scenario.name)}<span>${escapeHtml(scenario.featureName)}</span></div>`)
+                .join('');
+            const extra = selectedScenarios.length > 6 ? `<div class="field-hint">+${selectedScenarios.length - 6} more scenarios selected</div>` : '';
+            return `<strong>${selectedScenarios.length} scenarios selected</strong><div class="selection-list">${chips}</div>${extra}`;
+        }
+        if (targetType === 'TAGS') {
+            const cleanTags = (tags || '').trim();
+            if (!cleanTags) {
+                return '<strong>No tag filter set</strong><div class="field-hint">Enter one or more tags for this build.</div>';
+            }
+            const chips = cleanTags.split(/[\s,]+/)
+                .filter((tag) => tag)
+                .map((tag) => `<div class="selection-chip">${escapeHtml(tag)}</div>`)
+                .join('');
+            return `<strong>Tag filter active</strong><div class="selection-list">${chips}</div>`;
+        }
+        return '<strong>Entire project</strong><div class="field-hint">All scenarios in the selected project will run.</div>';
+    }
+
+    function validateBuildForm() {
+        const buildNameInput = document.getElementById('buildName');
+        const projectSelect = document.getElementById('buildProject');
+        const targetTypeSelect = document.getElementById('targetType');
+        const tagInput = document.querySelector('[name="tags"]');
+        const scheduleModeSelect = document.getElementById('scheduleMode');
+        const scheduledAtInput = document.getElementById('scheduledAt');
+        const targetType = targetTypeSelect?.value || 'PROJECT';
+        let valid = true;
+
+        const buildName = (buildNameInput?.value || '').trim();
+        setFieldError('buildNameError', buildName ? '' : 'Build name is required.');
+        setInvalidState(buildNameInput, !buildName);
+        valid = valid && !!buildName;
+
+        const projectId = projectSelect?.value || '';
+        setFieldError('projectError', projectId ? '' : 'Project is required.');
+        setInvalidState(projectSelect, !projectId);
+        valid = valid && !!projectId;
+
+        let scopeMessage = '';
+        if (projectId && targetType === 'FEATURES' && !selectedFeatureIds.length) {
+            scopeMessage = 'Select at least one feature.';
+        } else if (projectId && targetType === 'SCENARIOS' && !selectedScenarioIds.length) {
+            scopeMessage = 'Select at least one scenario.';
+        } else if (projectId && targetType === 'TAGS' && !(tagInput?.value || '').trim()) {
+            scopeMessage = 'Enter at least one tag.';
+            setInvalidState(tagInput, true);
+        } else {
+            setInvalidState(tagInput, false);
+        }
+        setFieldError('scopeError', scopeMessage);
+        setInvalidState(targetTypeSelect, !!scopeMessage);
+        valid = valid && !scopeMessage;
+
+        const scheduleMode = scheduleModeSelect?.value || 'NOW';
+        let scheduleMessage = '';
+        if (scheduleMode !== 'NOW') {
+            syncScheduleHiddenInput();
+            const raw = scheduledAtInput?.value || '';
+            const scheduledTime = raw ? new Date(raw) : null;
+            if (scheduleMode === 'ONCE' && (!(document.getElementById('scheduleDay')?.value) || !(document.getElementById('scheduleMonth')?.value) || !(document.getElementById('scheduleYear')?.value))) {
+                scheduleMessage = 'Choose a schedule date.';
+            } else if (scheduleMode === 'WEEKLY' && !(document.getElementById('scheduleWeekday')?.value)) {
+                scheduleMessage = 'Choose a day of the week.';
+            } else if (!(document.getElementById('scheduleHour')?.value) || !(document.getElementById('scheduleMinute')?.value)) {
+                scheduleMessage = 'Choose a schedule time.';
+            } else if (!raw || !scheduledTime || Number.isNaN(scheduledTime.getTime())) {
+                scheduleMessage = 'Choose a valid schedule time.';
+            } else if (scheduledTime.getTime() <= Date.now()) {
+                scheduleMessage = 'Schedule time must be in the future.';
+            }
+        }
+        setFieldError('scheduleError', scheduleMessage);
+        setInvalidState(document.getElementById('scheduleDay'), !!scheduleMessage);
+        setInvalidState(document.getElementById('scheduleMonth'), !!scheduleMessage);
+        setInvalidState(document.getElementById('scheduleYear'), !!scheduleMessage);
+        setInvalidState(document.getElementById('scheduleWeekday'), !!scheduleMessage);
+        setInvalidState(document.getElementById('scheduleHour'), !!scheduleMessage);
+        setInvalidState(document.getElementById('scheduleMinute'), !!scheduleMessage);
+        valid = valid && !scheduleMessage;
+
+        return valid;
+    }
+
+    function filterFeatureOptions() {
+        const query = (document.getElementById('featureSearchInput')?.value || '').toLowerCase().trim();
+        document.querySelectorAll('#featureSelector .selector-item').forEach((item) => {
+            const name = item.getAttribute('data-feature-name') || '';
+            item.style.display = !query || name.includes(query) ? '' : 'none';
+        });
+    }
+
+    function filterScenarioOptions() {
+        const query = (document.getElementById('scenarioSearchInput')?.value || '').toLowerCase().trim();
+        const featureId = document.getElementById('scenarioFeatureFilter')?.value || '';
+        document.querySelectorAll('#scenarioSelector .selector-item').forEach((item) => {
+            const name = item.getAttribute('data-scenario-name') || '';
+            const itemFeatureId = item.getAttribute('data-feature-id') || '';
+            const match = (!query || name.includes(query)) && (!featureId || itemFeatureId === featureId);
+            item.style.display = match ? '' : 'none';
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const banners = Array.from(document.querySelectorAll('.auto-dismiss-banner'));
+        if (banners.length) {
+            window.setTimeout(() => banners.forEach((banner) => banner.style.display = 'none'), 4000);
+        }
+        document.getElementById('buildProject')?.addEventListener('change', renderSelectors);
+        document.getElementById('targetType')?.addEventListener('change', (event) => {
+            renderSelectors();
+            openTargetSelector(event.target?.value || 'PROJECT');
+        });
+        document.getElementById('scheduleMode')?.addEventListener('change', syncScheduleBlock);
+        document.querySelector('[name="tags"]')?.addEventListener('input', updatePreview);
+        document.querySelector('[name="parallel"]')?.addEventListener('change', updatePreview);
+        document.getElementById('buildName')?.addEventListener('input', () => {
+            setFieldError('buildNameError', '');
+            setInvalidState(document.getElementById('buildName'), false);
+        });
+        document.getElementById('buildProject')?.addEventListener('change', () => {
+            setFieldError('projectError', '');
+            setInvalidState(document.getElementById('buildProject'), false);
+        });
+        document.querySelector('[name="tags"]')?.addEventListener('input', () => {
+            setFieldError('scopeError', '');
+            setInvalidState(document.querySelector('[name="tags"]'), false);
+            setInvalidState(document.getElementById('targetType'), false);
+        });
+        ['scheduleDay', 'scheduleMonth', 'scheduleYear', 'scheduleWeekday', 'scheduleHour', 'scheduleMinute'].forEach((id) => {
+            document.getElementById(id)?.addEventListener('change', () => {
+                syncScheduleHiddenInput();
+                clearScheduleErrors();
+            });
+        });
+        document.getElementById('featureSearchInput')?.addEventListener('input', filterFeatureOptions);
+        document.getElementById('scenarioSearchInput')?.addEventListener('input', filterScenarioOptions);
+        document.getElementById('scenarioFeatureFilter')?.addEventListener('change', filterScenarioOptions);
+        document.getElementById('scheduleSearchInput')?.addEventListener('input', (event) => {
+            scheduleQuery = event.target?.value || '';
+            schedulePage = 1;
+            renderScheduleTable();
+        });
+        document.getElementById('recentBuildSearchInput')?.addEventListener('input', (event) => {
+            recentBuildQuery = event.target?.value || '';
+            recentBuildPage = 1;
+            renderRecentBuildTable();
+        });
+        document.getElementById('schedulePrevBtn')?.addEventListener('click', () => {
+            schedulePage -= 1;
+            renderScheduleTable();
+        });
+        document.getElementById('scheduleNextBtn')?.addEventListener('click', () => {
+            schedulePage += 1;
+            renderScheduleTable();
+        });
+        document.getElementById('recentBuildPrevBtn')?.addEventListener('click', () => {
+            recentBuildPage -= 1;
+            renderRecentBuildTable();
+        });
+        document.getElementById('recentBuildNextBtn')?.addEventListener('click', () => {
+            recentBuildPage += 1;
+            renderRecentBuildTable();
+        });
+        document.getElementById('buildLaunchForm')?.addEventListener('submit', (event) => {
+            syncSelectedInputs();
+            syncScheduleHiddenInput();
+            if (!validateBuildForm()) {
+                event.preventDefault();
+            }
+        });
+        populateScheduleOptions();
+        hydrateScheduleInputs();
+        renderSelectors();
+        syncSelectedInputs();
+        syncScheduleBlock();
+        renderScheduleTable();
+        renderRecentBuildTable();
+    });
+</script>
+</body>
+</html>

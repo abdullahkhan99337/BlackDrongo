@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Running Tests</title>
+    <link href="/css/dashboard-theme.css" rel="stylesheet">
+    <style>
+        .running-link {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .running-link:hover {
+            text-decoration: underline;
+        }
+        .message-wrap {
+            max-width: 520px;
+            white-space: normal;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+        .sub-link {
+            display: inline-block;
+            margin-top: 4px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 12px;
+        }
+        .sub-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+<div class="app-shell">
+    <aside class="app-sidebar" th:replace="~{fragments/sidebar :: sidebar('running-tests')}"></aside>
+
+    <main class="app-main">
+        <header class="top-toolbar">
+            <th:block
+                    th:replace="~{fragments/page-header :: toolbar_meta('Dashboard / Running Tests', 'Running Tests')}"></th:block>
+            <div class="toolbar-controls">
+                <a class="btn btn-soft" href="/">Back to Overview</a>
+            </div>
+        </header>
+
+        <section class="stats-grid">
+            <article class="panel-card">
+                <p class="stat-label">Running</p>
+                <p class="stat-value" id="runningCount" th:text="${runningCount}">0</p>
+                <p class="stat-meta">Currently executing</p>
+            </article>
+            <article class="panel-card">
+                <p class="stat-label">Success</p>
+                <p class="stat-value" id="successCount" th:text="${successCount}">0</p>
+                <p class="stat-meta">Completed successfully</p>
+            </article>
+            <article class="panel-card">
+                <p class="stat-label">Failure</p>
+                <p class="stat-value" id="failureCount" th:text="${failureCount}">0</p>
+                <p class="stat-meta">Completed with failures</p>
+            </article>
+            <article class="panel-card">
+                <p class="stat-label">Not Run</p>
+                <p class="stat-value" id="notRunCount" th:text="${notRunCount}">0</p>
+                <p class="stat-meta">No run started yet</p>
+            </article>
+        </section>
+
+        <section class="content-card">
+            <div class="content-header">
+                <div>
+                    <h2 class="content-title">Scenario Status</h2>
+                    <div class="subtle">Live refresh every 2 seconds.</div>
+                </div>
+            </div>
+
+            <div class="empty-state" th:if="${#lists.isEmpty(runningRows)}">
+                No scenarios found yet.
+            </div>
+
+            <div class="table-wrap" th:if="${!#lists.isEmpty(runningRows)}">
+                <table id="runningTable">
+                    <thead>
+                    <tr>
+                        <th>Project</th>
+                        <th>Feature</th>
+                        <th>Scenario</th>
+                        <th>Status</th>
+                        <th>Updated</th>
+                        <th>Message</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:attr="data-scenario-id=${row.scenarioId()}" th:each="row : ${runningRows}">
+                        <td>
+                            <a class="running-link"
+                               th:href="@{'/projects/' + ${row.projectId()}}"
+                               th:text="${row.projectName()}">Project</a>
+                        </td>
+                        <td>
+                            <a class="running-link"
+                               th:href="@{'/projects/' + ${row.projectId()} + '/features/' + ${row.featureId()} + '/scenarios'}"
+                               th:text="${row.featureName()}">Feature</a>
+                        </td>
+                        <td>
+                            <div th:text="${row.scenarioName()}">Scenario</div>
+                            <a class="sub-link"
+                               th:href="@{'/projects/' + ${row.projectId()} + '/executions'}">Execution history</a>
+                        </td>
+                        <td>
+                            <span class="status"
+                                  th:attr="data-status-for=${row.scenarioId()}"
+                                  th:classappend="${row.state() == 'SUCCESS'} ? ' success' :
+                                                  (${row.state() == 'FAILURE'} ? ' failure' :
+                                                  (${row.state() == 'RUNNING'} ? ' running' : ''))"
+                                  th:text="${row.state() == 'NOT_RUN' ? 'Not Run' : row.state()}">Not Run</span>
+                        </td>
+                        <td class="message" th:attr="data-updated-for=${row.scenarioId()}"
+                            th:text="${row.updatedAt()}"></td>
+                        <td class="message message-wrap" th:attr="data-message-for=${row.scenarioId()}"
+                            th:text="${row.message()}">
+                            -
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    let refreshInFlight = false;
+    let refreshTimer = null;
+    const FAST_REFRESH_MS = 2000;
+    const SLOW_REFRESH_MS = 10000;
+
+    }
+
+    function normalizeState(state) {
+        if (!state) {
+            return 'NOT_RUN';
+        }
+        return String(state).trim().toUpperCase();
+    }
+
+    function stateLabel(state) {
+        return state === 'NOT_RUN' ? 'Not Run' : state;
+    }
+
+    function applyCounts(rows) {
+        const counts = { RUNNING: 0, SUCCESS: 0, FAILURE: 0, NOT_RUN: 0 };
+        rows.forEach((row) => {
+            const state = normalizeState(row.state);
+            counts[state] = (counts[state] || 0) + 1;
+        });
+        document.getElementById('runningCount').textContent = counts.RUNNING || 0;
+        document.getElementById('successCount').textContent = counts.SUCCESS || 0;
+        document.getElementById('failureCount').textContent = counts.FAILURE || 0;
+        document.getElementById('notRunCount').textContent = counts.NOT_RUN || 0;
+        return counts;
+    }
+
+    function applyRows(rows) {
+        const counts = applyCounts(rows);
+        rows.forEach((row) => {
+            const id = row.scenarioId;
+            if (!id) {
+                return;
+            }
+            const statusEl = document.querySelector(`[data-status-for="${id}"]`);
+            const updatedEl = document.querySelector(`[data-updated-for="${id}"]`);
+            const messageEl = document.querySelector(`[data-message-for="${id}"]`);
+            if (statusEl) {
+                const state = normalizeState(row.state);
+                statusEl.textContent = stateLabel(state);
+                statusEl.classList.remove('success', 'failure', 'running');
+                if (state === 'SUCCESS') {
+                    statusEl.classList.add('success');
+                } else if (state === 'FAILURE') {
+                    statusEl.classList.add('failure');
+                } else if (state === 'RUNNING') {
+                    statusEl.classList.add('running');
+                }
+            }
+            if (updatedEl) {
+                updatedEl.textContent = row.updatedAt || '';
+            }
+            if (messageEl) {
+                messageEl.textContent = row.message || '-';
+            }
+        });
+        scheduleRefresh((counts.RUNNING || 0) > 0 ? FAST_REFRESH_MS : SLOW_REFRESH_MS);
+    }
+
+    function scheduleRefresh(delay) {
+        if (refreshTimer) {
+            window.clearTimeout(refreshTimer);
+        }
+        refreshTimer = window.setTimeout(refreshStatuses, delay);
+    }
+
+    async function refreshStatuses() {
+        if (refreshInFlight || document.hidden) {
+            scheduleRefresh(SLOW_REFRESH_MS);
+            return;
+        }
+        refreshInFlight = true;
+        try {
+            const response = await fetch('/running-tests/statuses');
+            if (!response.ok) {
+                return;
+            }
+            const rows = await response.json();
+            if (!Array.isArray(rows)) {
+                return;
+            }
+            applyRows(rows);
+        } catch (e) {
+            // best effort polling
+        } finally {
+            refreshInFlight = false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshStatuses();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            refreshStatuses();
+        }
+    });
+</script>
+</body>
+</html>
+

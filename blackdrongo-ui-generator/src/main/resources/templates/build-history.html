@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Build History</title>
+    <link href="/css/dashboard-theme.css" rel="stylesheet">
+    <style>
+        .history-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+            gap: 16px;
+        }
+        .history-stack {
+            display: grid;
+            gap: 16px;
+        }
+        .history-message {
+            max-width: 520px;
+            white-space: normal;
+            word-break: break-word;
+            line-height: 1.45;
+        }
+        @media (max-width: 1080px) {
+            .history-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+<div class="app-shell">
+    <aside class="app-sidebar" th:replace="~{fragments/sidebar :: sidebar('builds-history')}"></aside>
+
+    <main class="app-main">
+        <header class="top-toolbar">
+            <th:block
+                    th:replace="~{fragments/page-header :: toolbar_meta('Builds / History', 'Build History')}"></th:block>
+            <div class="toolbar-controls">
+                <a class="btn btn-soft" href="/builds/new">Create Build</a>
+            </div>
+        </header>
+
+        <section class="stats-grid">
+            <article class="panel-card">
+                <p class="stat-label">Recent Builds</p>
+                <p class="stat-value" th:text="${#lists.size(recentBuilds)}">0</p>
+                <p class="stat-meta">Stored build runs</p>
+            </article>
+            <article class="panel-card">
+                <p class="stat-label">Schedules</p>
+                <p class="stat-value" th:text="${#lists.size(buildSchedules)}">0</p>
+                <p class="stat-meta">Saved schedule entries</p>
+            </article>
+        </section>
+
+        <div class="history-grid">
+            <section class="content-card">
+                <div class="content-header">
+                    <div>
+                        <h2 class="content-title">Recent Builds</h2>
+                        <div class="subtle">Latest queued, running, and completed build runs.</div>
+                    </div>
+                </div>
+                <div class="empty-state" th:if="${#lists.isEmpty(recentBuilds)}">No builds launched yet.</div>
+                <div class="table-wrap" th:if="${!#lists.isEmpty(recentBuilds)}">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Build</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                            <th>When</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="run : ${recentBuilds}">
+                            <td>
+                                <strong th:text="${run.buildName()}">Build</strong>
+                                <div class="subtle" th:text="${run.targetSummary()}">Target</div>
+                            </td>
+                            <td>
+                                <span class="pill"
+                                      th:classappend="${run.status() == 'SUCCESS'} ? ' ok' :
+                                                      (${run.status() == 'FAILURE' || run.status() == 'REJECTED'} ? ' fail' : '')"
+                                      th:text="${run.status()}">QUEUED</span>
+                            </td>
+                            <td class="history-message">
+                                <div th:text="${#strings.isEmpty(run.message()) ? '-' : run.message()}">-</div>
+                                <div class="subtle"
+                                     th:text="${'Trigger: ' + (#strings.isEmpty(run.triggerType()) ? '-' : run.triggerType())}">
+                                    Trigger
+                                </div>
+                            </td>
+                            <td>
+                                <div th:text="${#strings.isEmpty(run.createdAt()) ? '-' : run.createdAt()}">-</div>
+                                <div class="subtle"
+                                     th:text="${#strings.isEmpty(run.completedAt()) ? 'Completed: -' : 'Completed: ' + run.completedAt()}">
+                                    Completed: -
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <aside class="history-stack">
+                <section class="content-card">
+                    <div class="content-header">
+                        <div>
+                            <h2 class="content-title">Schedules</h2>
+                            <div class="subtle">Saved future and recurring build runs.</div>
+                        </div>
+                    </div>
+                    <div class="empty-state" th:if="${#lists.isEmpty(buildSchedules)}">No schedules yet.</div>
+                    <div class="table-wrap" th:if="${!#lists.isEmpty(buildSchedules)}">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>Build</th>
+                                <th>Next Run</th>
+                                <th>Status</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="schedule : ${buildSchedules}">
+                                <td>
+                                    <strong th:text="${schedule.buildName()}">Build</strong>
+                                    <div class="subtle" th:text="${schedule.targetSummary()}">Target</div>
+                                </td>
+                                <td th:text="${schedule.nextRunAt() == null ? '-' : schedule.nextRunAt()}">-</td>
+                                <td th:text="${schedule.status()}">ACTIVE</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </main>
+</div>
+</body>
+</html>

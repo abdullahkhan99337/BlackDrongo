@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside class="app-sidebar" th:fragment="sidebar(activeSection)">
+    <div class="brand">
+        <div class="brand-mark">B</div>
+        <span>BlackDrongo</span>
+    </div>
+
+    <div class="nav-section">
+        <p class="nav-title">Workspace</p>
+        <a class="nav-link"
+           href="/"
+           th:classappend="${activeSection == 'overview'} ? ' active' : ''">Overview</a>
+        <a class="nav-link"
+           href="/projects"
+           th:classappend="${activeSection == 'projects'} ? ' active' : ''">Projects</a>
+    </div>
+
+    <div class="nav-section">
+        <p class="nav-title">Builds</p>
+        <a class="nav-link"
+           href="/builds/new"
+           th:classappend="${activeSection == 'builds-new'} ? ' active' : ''">Create Build</a>
+        <a class="nav-link"
+           href="/builds/history"
+           th:classappend="${activeSection == 'builds-history'} ? ' active' : ''">Build History</a>
+        <a class="nav-link"
+           href="/running-tests"
+           th:classappend="${activeSection == 'running-tests'} ? ' active' : ''">Running Builds</a>
+    </div>
+</aside>
+</body>
+</html>

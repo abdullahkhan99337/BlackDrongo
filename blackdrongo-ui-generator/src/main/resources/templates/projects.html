@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Projects</title>
+    <link href="/css/dashboard-theme.css" rel="stylesheet">
+    <style>
+        .board-controls {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+        }
+        .projects-search {
+            width: 260px;
+            margin: 0;
+            padding: 8px 10px;
+            height: 36px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: rgba(17, 24, 57, 0.8);
+            color: var(--text);
+            line-height: normal;
+            min-width: 0;
+        }
+        .projects-search::placeholder {
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+        .projects-controls .btn {
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .projects-search:focus {
+            outline: none;
+            border-color: rgba(89, 214, 255, 0.55);
+            box-shadow: 0 0 0 3px rgba(89, 214, 255, 0.14);
+        }
+        .projects-donuts .mini-donut {
+            width: 102px;
+            height: 102px;
+            margin-bottom: 8px;
+        }
+        .projects-donuts .mini-donut::before {
+            inset: 13px;
+        }
+        .projects-donuts .mini-donut > span {
+            font-size: 16px;
+        }
+        .projects-donuts {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(5, minmax(120px, 1fr));
+            gap: 10px;
+            justify-items: center;
+        }
+        .projects-donuts .donut-card {
+            min-width: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 2px;
+        }
+        .projects-donuts .donut-card .subtle {
+            text-align: center;
+            width: 100%;
+            margin-top: 2px;
+        }
+        .analytics-card {
+            min-height: 240px;
+            max-height: 240px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow: hidden;
+        }
+        .analytics-card .content-header .subtle {
+            margin-top: 8px;
+        }
+        .analytics-card .content-header {
+            justify-content: center;
+            text-align: center;
+        }
+        .analytics-card .donut-row {
+            min-height: 150px;
+            align-items: center;
+            justify-content: center;
+        }
+        .board-controls .btn {
+            height: 36px;
+            min-height: 36px;
+            padding: 0 14px;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .board-description {
+            margin-top: 10px;
+        }
+        .project-board-card {
+            min-height: 620px;
+            max-height: 620px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .project-board-card .table-wrap {
+            flex: 1 1 auto;
+            overflow: auto;
+            min-height: 0;
+        }
+        .project-board-card .pagination-row {
+            margin-top: 10px;
+            flex: 0 0 auto;
+        }
+        .pagination-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .pagination-meta {
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .project-name-link {
+            color: #eaf1ff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .project-name-link:hover {
+            text-decoration: underline;
+        }
+        .metric-link {
+            text-decoration: none;
+        }
+        @media (max-width: 900px) {
+            .projects-search {
+                width: 100%;
+            }
+            .board-controls {
+                width: 100%;
+                justify-content: stretch;
+                flex-wrap: wrap;
+            }
+            .projects-donuts {
+                grid-template-columns: repeat(2, minmax(120px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+<div class="app-shell">
+    <aside class="app-sidebar" th:replace="~{fragments/sidebar :: sidebar('projects')}"></aside>
+
+    <main class="app-main">
+        <section class="content-card analytics-card"
+                 th:with="featureTotal=${#aggregates.sum(projectCards.![metrics.features])},
+                          scenarioTotal=${#aggregates.sum(projectCards.![metrics.scenarios])},
+                          successTotal=${#aggregates.sum(projectCards.![metrics.success])},
+                          failureTotal=${#aggregates.sum(projectCards.![metrics.failure])},
+                          runningTotal=${#aggregates.sum(projectCards.![metrics.running])},
+                          notRunTotal=${#aggregates.sum(projectCards.![metrics.notRun])},
+                          totalExec=${(successTotal != null ? successTotal : 0) + (failureTotal != null ? failureTotal : 0) + (runningTotal != null ? runningTotal : 0) + (notRunTotal != null ? notRunTotal : 0)},
+                          passPct=${((successTotal != null ? successTotal : 0) + (failureTotal != null ? failureTotal : 0)) > 0 ? (((successTotal != null ? successTotal : 0) * 100.0) / ((successTotal != null ? successTotal : 0) + (failureTotal != null ? failureTotal : 0))) : 0},
+                          runningPct=${totalExec > 0 ? (((runningTotal != null ? runningTotal : 0) * 100.0) / totalExec) : 0},
+                          notRunPct=${totalExec > 0 ? (((notRunTotal != null ? notRunTotal : 0) * 100.0) / totalExec) : 0}">
+            <div class="content-header">
+                <div>
+                    <h2 class="content-title">Project Analytics</h2>
+                    <div class="subtle">Execution health snapshot across all projects.</div>
+                </div>
+            </div>
+            <div class="donut-row projects-donuts">
+                <div class="donut-card">
+                    <div class="mini-donut"
+                         th:style="'background: conic-gradient(#9ef01a 100%, rgba(76, 94, 158, 0.38) 0%);'">
+                        <span th:text="${featureTotal != null ? featureTotal : 0}">0</span>
+                    </div>
+                    <div class="subtle">Features</div>
+                </div>
+                <div class="donut-card">
+                    <div class="mini-donut"
+                         th:style="'background: conic-gradient(#59d6ff 100%, rgba(76, 94, 158, 0.38) 0%);'">
+                        <span th:text="${scenarioTotal != null ? scenarioTotal : 0}">0</span>
+                    </div>
+                    <div class="subtle">Scenarios</div>
+                </div>
+                <div class="donut-card">
+                    <div class="mini-donut"
+                         th:style="'background: conic-gradient(#6effb2 ' + ${passPct} + '%, rgba(76, 94, 158, 0.38) ' + ${passPct} + '%);'">
+                        <span th:text="${#numbers.formatDecimal(passPct,1,0)} + '%'">0%</span>
+                    </div>
+                    <div class="subtle">Pass Rate</div>
+                </div>
+                <div class="donut-card">
+                    <div class="mini-donut"
+                         th:style="'background: conic-gradient(#59d6ff ' + ${runningPct} + '%, rgba(76, 94, 158, 0.38) ' + ${runningPct} + '%);'">
+                        <span th:text="${#numbers.formatDecimal(runningPct,1,0)} + '%'">0%</span>
+                    </div>
+                    <div class="subtle">Running</div>
+                </div>
+                <div class="donut-card">
+                    <div class="mini-donut"
+                         th:style="'background: conic-gradient(#ffd45f ' + ${notRunPct} + '%, rgba(76, 94, 158, 0.38) ' + ${notRunPct} + '%);'">
+                        <span th:text="${#numbers.formatDecimal(notRunPct,1,0)} + '%'">0%</span>
+                    </div>
+                    <div class="subtle">Not Run</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-card project-board-card">
+            <div class="content-header">
+                <div>
+                    <h2 class="content-title">Project Board</h2>
+                    <div class="subtle board-description">Detailed list of all configured automation projects.</div>
+                </div>
+                <div class="board-controls">
+                    <input class="projects-search" oninput="filterProjects(this.value)"
+                           placeholder="Search by name, engine, browser"
+                           type="text">
+                    <a class="btn btn-primary" href="/projects/new">Add Project</a>
+                    <span class="pill">Total <strong th:text="${projectCount}">0</strong></span>
+                </div>
+            </div>
+
+            <div class="empty-state" th:if="${#lists.isEmpty(projectCards)}">
+                No projects yet. Create your first project to start adding features and scenarios.
+            </div>
+
+            <div class="table-wrap" th:if="${!#lists.isEmpty(projectCards)}">
+                <table id="projectsTable">
+                    <thead>
+                    <tr>
+                        <th>Project</th>
+                        <th>Engine</th>
+                        <th>Browser</th>
+                        <th>Metrics</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:attr="data-search=${#strings.toLowerCase((entry.project().projectName ?: '') + ' ' + (entry.project().engine ?: '') + ' ' + (entry.project().browser ?: ''))}"
+                        th:each="entry : ${projectCards}">
+                        <td>
+                            <a class="project-name-link"
+                               th:href="@{'/projects/' + ${entry.id()}}"
+                               th:text="${entry.project().projectName}">Project</a>
+                        </td>
+                        <td th:text="${entry.project().engine}">selenium</td>
+                        <td th:text="${entry.project().browser}">chrome</td>
+                        <td>
+                            <div class="metric-row">
+                                <span class="pill">Features <strong
+                                        th:text="${entry.metrics().features()}">0</strong></span>
+                                <span class="pill">Scenarios <strong th:text="${entry.metrics().scenarios()}">0</strong></span>
+                                <a class="pill ok metric-link"
+                                   th:href="@{'/projects/' + ${entry.id()} + '/executions'(state='SUCCESS')}">Pass
+                                    <strong th:text="${entry.metrics().success()}">0</strong></a>
+                                <a class="pill fail metric-link"
+                                   th:href="@{'/projects/' + ${entry.id()} + '/executions'(state='FAILURE')}">Fail
+                                    <strong th:text="${entry.metrics().failure()}">0</strong></a>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-row">
+                                <a aria-label="Edit Project"
+                                   class="icon-btn edit-btn"
+                                   th:href="@{'/projects/' + ${entry.id()} + '/edit'}"
+                                   title="Edit Project">
+                                    <svg aria-hidden="true" class="icon" viewBox="0 0 24 24">
+                                        <path d="M3 17.3V21h3.7l10.9-10.9-3.7-3.7L3 17.3zm18.4-11.2a1 1 0 0 0 0-1.4l-2.1-2.1a1 1 0 0 0-1.4 0l-1.6 1.6 3.7 3.7 1.4-1.8z"/>
+                                    </svg>
+                                </a>
+                                <button aria-label="Delete Project"
+                                        class="icon-btn delete-btn"
+                                        onclick="openDeleteProjectModal(this)"
+                                        th:attr="data-id=${entry.id()}, data-name=${entry.project().projectName}"
+                                        title="Delete Project"
+                                        type="button">
+                                    <svg aria-hidden="true" class="icon" viewBox="0 0 24 24">
+                                        <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div class="pagination-row">
+                    <span class="pagination-meta" id="paginationMeta">Page 1 of 1</span>
+                    <button class="btn btn-soft" id="prevPageBtn" onclick="changePage(-1)" type="button">Previous
+                    </button>
+                    <button class="btn btn-soft" id="nextPageBtn" onclick="changePage(1)" type="button">Next</button>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div aria-labelledby="deleteProjectTitle" aria-modal="true" class="modal" id="deleteProjectModal" role="dialog">
+    <div class="modal-content">
+        <div class="content-header">
+            <h2 class="content-title" id="deleteProjectTitle">Delete Project</h2>
+            <button aria-label="Close" class="modal-close modal-close-icon" onclick="closeProjectModals()"
+                    type="button">&times;
+            </button>
+        </div>
+        <p class="subtle">This will delete project, features, scenarios, and run history.</p>
+        <p>Project: <strong id="deleteProjectName"></strong></p>
+        <form action="/projects/delete" id="deleteProjectForm" method="post">
+            <div class="action-row">
+                <button class="btn btn-danger" type="submit">Delete</button>
+                <button class="btn btn-soft" onclick="closeProjectModals()" type="button">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const ROWS_PER_PAGE = 10;
+    let currentPage = 1;
+    let currentQuery = '';
+
+    function getAllRows() {
+        return Array.from(document.querySelectorAll('#projectsTable tbody tr'));
+    }
+
+    function getFilteredRows() {
+        const query = currentQuery.trim();
+        return getAllRows().filter((row) => {
+            const search = (row.dataset.search || '').toLowerCase();
+            return search.includes(query);
+        });
+    }
+
+    function renderTablePage() {
+        const allRows = getAllRows();
+        const filteredRows = getFilteredRows();
+        const totalPages = Math.max(1, Math.ceil(filteredRows.length / ROWS_PER_PAGE));
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+        if (currentPage < 1) {
+            currentPage = 1;
+        }
+
+        allRows.forEach((row) => {
+            row.style.display = 'none';
+        });
+        const start = (currentPage - 1) * ROWS_PER_PAGE;
+        const end = start + ROWS_PER_PAGE;
+        filteredRows.slice(start, end).forEach((row) => {
+            row.style.display = '';
+        });
+
+        const meta = document.getElementById('paginationMeta');
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        if (meta) {
+            meta.textContent = `Page ${totalPages === 0 ? 0 : currentPage} of ${totalPages}`;
+        }
+        if (prevBtn) {
+            prevBtn.disabled = currentPage <= 1;
+        }
+        if (nextBtn) {
+            nextBtn.disabled = currentPage >= totalPages;
+        }
+    }
+
+    function filterProjects(query) {
+        currentQuery = (query || '').toLowerCase();
+        currentPage = 1;
+        renderTablePage();
+    }
+
+    function changePage(delta) {
+        currentPage += delta;
+        renderTablePage();
+    }
+
+    function closeProjectModals() {
+        document.querySelectorAll('.modal').forEach((modal) => modal.classList.remove('open'));
+        document.body.classList.remove('modal-open');
+    }
+
+    function openDeleteProjectModal(button) {
+        const id = button.dataset.id || '';
+        const name = button.dataset.name || '';
+        document.getElementById('deleteProjectName').textContent = name;
+        document.getElementById('deleteProjectForm').action = `/projects/delete/${id}`;
+        document.getElementById('deleteProjectModal').classList.add('open');
+        document.body.classList.add('modal-open');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderTablePage();
+    });
+</script>
+</body>
+</html>
+
+

@@ -7,9 +7,16 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="BlackDrongo" />
+        <module name="blackdrongo-playwright" />
+        <module name="BlackDrongo (1) (BlackDrongo)" />
+        <module name="blackdrongo-ui-generator" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="25" />
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="blackdrongo-ui-generator" options="" />
+    </option>
   </component>
 </project>

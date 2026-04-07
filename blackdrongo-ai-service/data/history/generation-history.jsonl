@@ -1,0 +1,57 @@
+{
+  "id": "49928e90-b84a-4cbc-aaf7-b7240c686718",
+  "recorded_at": "2026-03-26T12:39:55.002147+00:00",
+  "provider": "mock",
+  "request": {
+    "project_name": "Amazon",
+    "base_url": "https://example.com",
+    "feature_name": "Login",
+    "scenario_name": "User logs in successfully",
+    "plain_text": "Open login page. Enter valid username. Enter valid password. Click login. Verify dashboard is displayed.",
+    "package_name": "steps.generated",
+    "page_class_name": null
+  },
+  "artifacts": {
+    "feature": "Feature: Login\n\n  Scenario: User logs in successfully\n    Given Open login page\n    When Enter valid username\n    When Enter valid password\n    When Click login\n    Then Verify dashboard is displayed\n",
+    "step_definitions": "package steps.generated;\n\nimport io.cucumber.java.en.Given;\nimport io.cucumber.java.en.When;\nimport io.cucumber.java.en.Then;\nimport pages.LoginPage;\n\npublic class LoginSteps {\n    private final LoginPage page = new LoginPage();\n\n    @Given(\"Open login page\")\n    public void openLoginPage() {\n        page.openLoginPage();\n    }\n\n    @When(\"Enter valid username\")\n    public void enterValidUsername() {\n        page.enterValidUsername();\n    }\n\n    @When(\"Enter valid password\")\n    public void enterValidPassword() {\n        page.enterValidPassword();\n    }\n\n    @When(\"Click login\")\n    public void clickLogin() {\n        page.clickLogin();\n    }\n\n    @Then(\"Verify dashboard is displayed\")\n    public void verifyDashboardIsDisplayed() {\n        page.verifyDashboardIsDisplayed();\n    }\n\n}\n",
+    "page_object": "package pages;\n\nimport steps.Step;\n\npublic class LoginPage extends Step {\n\n    public void openLoginPage() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void enterValidUsername() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void enterValidPassword() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void clickLogin() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void verifyDashboardIsDisplayed() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n}\n"
+  }
+}
+{
+  "id": "867a57d9-ffa3-4eef-8857-5e1866c04099",
+  "recorded_at": "2026-03-26T12:51:45.905982+00:00",
+  "provider": "mock",
+  "request": {
+    "project_name": "Amazon",
+    "base_url": "https://example.com",
+    "feature_name": "Amazon Search",
+    "scenario_name": "AI Login Draft",
+    "plain_text": "Open login page. Enter valid username. Enter valid password. Click login. Verify dashboard is displayed.",
+    "package_name": "steps.generated",
+    "page_class_name": null
+  },
+  "artifacts": {
+    "feature": "Feature: Amazon Search\n\n  Scenario: AI Login Draft\n    Given Open login page\n    When Enter valid username\n    When Enter valid password\n    When Click login\n    Then Verify dashboard is displayed\n",
+    "step_definitions": "package steps.generated;\n\nimport io.cucumber.java.en.Given;\nimport io.cucumber.java.en.When;\nimport io.cucumber.java.en.Then;\nimport pages.AmazonSearchPage;\n\npublic class AmazonSearchSteps {\n    private final AmazonSearchPage page = new AmazonSearchPage();\n\n    @Given(\"Open login page\")\n    public void openLoginPage() {\n        page.openLoginPage();\n    }\n\n    @When(\"Enter valid username\")\n    public void enterValidUsername() {\n        page.enterValidUsername();\n    }\n\n    @When(\"Enter valid password\")\n    public void enterValidPassword() {\n        page.enterValidPassword();\n    }\n\n    @When(\"Click login\")\n    public void clickLogin() {\n        page.clickLogin();\n    }\n\n    @Then(\"Verify dashboard is displayed\")\n    public void verifyDashboardIsDisplayed() {\n        page.verifyDashboardIsDisplayed();\n    }\n\n}\n",
+    "page_object": "package pages;\n\nimport steps.Step;\n\npublic class AmazonSearchPage extends Step {\n\n    public void openLoginPage() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void enterValidUsername() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void enterValidPassword() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void clickLogin() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void verifyDashboardIsDisplayed() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n}\n"
+  }
+}
+{
+  "id": "99a90c26-a5f5-430d-b2cd-7c2ca75fb5b9",
+  "recorded_at": "2026-03-26T13:02:24.640190+00:00",
+  "provider": "mock",
+  "request": {
+    "project_name": "Amazon",
+    "base_url": "https://www.amazon.in/",
+    "feature_name": "Amazon Search",
+    "scenario_name": "AI Login Draft",
+    "plain_text": "Open login page. Enter valid username. Enter valid password. Click login. Verify dashboard is displayed.",
+    "package_name": "steps.generated",
+    "page_class_name": null
+  },
+  "artifacts": {
+    "feature": "Feature: Amazon Search\n\n  Scenario: AI Login Draft\n    Given Open login page\n    When Enter valid username\n    When Enter valid password\n    When Click login\n    Then Verify dashboard is displayed\n",
+    "step_definitions": "package steps.generated;\n\nimport io.cucumber.java.en.Given;\nimport io.cucumber.java.en.When;\nimport io.cucumber.java.en.Then;\nimport pages.AmazonSearchPage;\n\npublic class AmazonSearchSteps {\n    private final AmazonSearchPage page = new AmazonSearchPage();\n\n    @Given(\"Open login page\")\n    public void openLoginPage() {\n        page.openLoginPage();\n    }\n\n    @When(\"Enter valid username\")\n    public void enterValidUsername() {\n        page.enterValidUsername();\n    }\n\n    @When(\"Enter valid password\")\n    public void enterValidPassword() {\n        page.enterValidPassword();\n    }\n\n    @When(\"Click login\")\n    public void clickLogin() {\n        page.clickLogin();\n    }\n\n    @Then(\"Verify dashboard is displayed\")\n    public void verifyDashboardIsDisplayed() {\n        page.verifyDashboardIsDisplayed();\n    }\n\n}\n",
+    "page_object": "package pages;\n\nimport steps.Step;\n\npublic class AmazonSearchPage extends Step {\n\n    public void openLoginPage() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void enterValidUsername() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void enterValidPassword() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void clickLogin() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n    public void verifyDashboardIsDisplayed() {\n        throw new UnsupportedOperationException(\"Implement locator and action logic\");\n    }\n\n}\n"
+  }
+}
