@@ -5,18 +5,11 @@ import org.openqa.selenium.WebDriver;
 public class DriverFactory {
 
     public static WebDriver getInstance(String browserName) {
-        final WebDriver driver;
-        switch (browserName) {
-            case "chrome":
-                driver = ChromeDriver.chrome.createChromeDriver();
-                break;
-            case "firefox":
-                driver = FireFoxDriver.fireFoxBrowser.createFireFoxDriver();
-                break;
-            default:
-                throw new IllegalArgumentException("Please provide proper browser Name");
-        }
-        return driver;
+        return switch (browserName) {
+            case "chrome" -> ChromeDriver.chrome.createChromeDriver();
+            case "firefox" -> FireFoxDriver.fireFoxBrowser.createFireFoxDriver();
+            default -> throw new IllegalArgumentException("Please provide proper browser Name");
+        };
     }
 
     private static class ChromeDriver {

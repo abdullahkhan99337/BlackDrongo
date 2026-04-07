@@ -1,9 +1,9 @@
 package playwright.browser;
 
-import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Playwright;
 
 import java.util.Set;
@@ -95,15 +95,13 @@ public final class PlaywrightManager {
             return;
         }
         ConfigReader config = ConfigReader.getInstance();
-        String browserName = config.getOptionalProperty("browser");
-        if (browserName.isBlank()) {
-            browserName = "chromium";
-        }
+        String browserName = normalizeBrowserName(config.getOptionalProperty("browser"));
         boolean headless = config.getBoolean("headless", false);
 
         playwright = Playwright.create();
         BrowserType browserType = resolveBrowserType(playwright, browserName);
-        browser = browserType.launch(new BrowserType.LaunchOptions().setHeadless(headless));
+        BrowserType.LaunchOptions launchOptions = resolveLaunchOptions(browserName, headless);
+        browser = browserType.launch(launchOptions);
         started = true;
     }
 
@@ -121,12 +119,30 @@ public final class PlaywrightManager {
     }
 
     private BrowserType resolveBrowserType(Playwright playwright, String browserName) {
-        String value = browserName == null ? "chromium" : browserName.trim().toLowerCase();
-        return switch (value) {
-            case "chrome", "chromium" -> playwright.chromium();
+        return switch (browserName) {
+            case "chromium", "chrome", "edge", "msedge" -> playwright.chromium();
             case "firefox" -> playwright.firefox();
             case "webkit", "safari" -> playwright.webkit();
             default -> throw new IllegalArgumentException("Unsupported Playwright browser: " + browserName);
         };
+    }
+
+    private BrowserType.LaunchOptions resolveLaunchOptions(String browserName, boolean headless) {
+        BrowserType.LaunchOptions options = new BrowserType.LaunchOptions().setHeadless(headless);
+        switch (browserName) {
+            case "chrome" -> options.setChannel("chrome");
+            case "edge", "msedge" -> options.setChannel("msedge");
+            default -> {
+                // Use bundled browser channel for chromium/firefox/webkit unless explicitly requested.
+            }
+        }
+        return options;
+    }
+
+    private String normalizeBrowserName(String browserName) {
+        if (browserName == null || browserName.isBlank()) {
+            return "chromium";
+        }
+        return browserName.trim().toLowerCase();
     }
 }
