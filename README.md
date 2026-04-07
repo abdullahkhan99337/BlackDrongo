@@ -139,6 +139,33 @@ Guidelines for better generated output:
 - Put data values in quotes.
 - Add tags like `@smoke`, `@regression` for build targeting.
 
+### Passing Locators In Scenario Text
+
+When authoring scenarios in the UI, you can pass an explicit locator by appending `|` and locator text in the same step
+line.
+
+Format:
+
+```text
+<gherkin step text> | <locator>
+```
+
+Examples:
+
+```gherkin
+When I click Login | id=login-btn
+And I enter "user@example.com" in email | css=input[name='email']
+And I enter "Pass@123" in password | xpath=//input[@type='password']
+Then I should see "Dashboard" | text=Dashboard
+```
+
+Notes:
+
+- If `| locator` is omitted, the generator falls back to heuristic locator generation from step text.
+- Supported prefixes include `id=`, `name=`, `css=`, `xpath=`, `text=`, `label=`, and `role=...`.
+- Playwright role options are supported, for example:
+  `role=button|name=Login|exact=true`
+
 ## UI Snapshot
 
 Feature Board example:
