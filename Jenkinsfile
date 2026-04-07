@@ -23,9 +23,9 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh 'mvn -f blackdrongo-selenium/pom.xml -B clean test'
+                        sh 'mvn -B clean test -Dsurefire.suiteXmlFiles=testng.xml'
                     } else {
-                        bat 'mvn -f blackdrongo-selenium/pom.xml -B clean test'
+                        bat 'mvn -B clean test -Dsurefire.suiteXmlFiles=testng.xml'
                     }
                 }
             }
@@ -34,8 +34,8 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'blackdrongo-selenium/target/**/*.log, blackdrongo-selenium/target/**/*.html, blackdrongo-selenium/target/**/*.json', allowEmptyArchive: true
-            junit testResults: 'blackdrongo-selenium/target/surefire-reports/*.xml, blackdrongo-selenium/target/failsafe-reports/*.xml', allowEmptyResults: true
+            archiveArtifacts artifacts: 'target/**/*.log, target/**/*.html, target/**/*.json', allowEmptyArchive: true
+            junit testResults: 'target/surefire-reports/*.xml, target/failsafe-reports/*.xml', allowEmptyResults: true
         }
     }
 }
