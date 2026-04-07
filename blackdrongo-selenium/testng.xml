@@ -6,7 +6,6 @@
        thread-count="4"
        data-provider-thread-count="4">
     <parameter name="browser" value="chrome"/>
-    <parameter name="baseUrl"
     00 value="http://localhost:8080"/>
     <test name="Cucumber Tests">
         <classes>
