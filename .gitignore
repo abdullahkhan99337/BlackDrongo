@@ -1,3 +1,9 @@
-ui-generator/data/
-ui-generator/data/*.db
-ui-generator/data/*.db-*
+blackdrongo-ui-generator/data/
+blackdrongo-ui-generator/data/*.db
+blackdrongo-ui-generator/data/*.db-*
+blackdrongo-ui-generator/generated/
+blackdrongo-ui-generator/target/
+blackdrongo-ui-generator/*.log
+blackdrongo-ai-service/.venv/
+blackdrongo-ai-service/__pycache__/
+target/

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Project Executions</title>
+    <link href="/css/dashboard-theme.css" rel="stylesheet">
+    <style>
+        .execution-link {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .execution-link:hover {
+            text-decoration: underline;
+        }
+        .execution-subtle-link {
+            display: inline-block;
+            margin-top: 4px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 12px;
+        }
+        .execution-subtle-link:hover {
+            text-decoration: underline;
+        }
+        .execution-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .02em;
+            background: rgba(148, 163, 184, .12);
+            color: var(--text);
+            border: 1px solid rgba(148, 163, 184, .22);
+        }
+        .execution-status.ok {
+            background: rgba(34, 197, 94, .14);
+            border-color: rgba(34, 197, 94, .32);
+            color: #bbf7d0;
+        }
+        .execution-status.fail {
+            background: rgba(248, 113, 113, .14);
+            border-color: rgba(248, 113, 113, .34);
+            color: #fecaca;
+        }
+        .execution-status.run {
+            background: rgba(96, 165, 250, .14);
+            border-color: rgba(96, 165, 250, .34);
+            color: #bfdbfe;
+        }
+        .execution-message {
+            max-width: 540px;
+            white-space: normal;
+            word-break: break-word;
+            line-height: 1.45;
+        }
+        .execution-time {
+            min-width: 140px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+<div class="app-shell">
+    <aside class="app-sidebar" th:replace="~{fragments/sidebar :: sidebar('projects')}"></aside>
+
+    <main class="app-main">
+        <header class="top-toolbar">
+            <th:block
+                    th:replace="~{fragments/page-header :: toolbar_meta('Projects / Executions', ${project.project().projectName} + ' - Executions')}"></th:block>
+            <div class="toolbar-controls">
+                <span class="pill" th:if="${stateFilter != null && !stateFilter.isBlank()}"
+                      th:text="'Filter: ' + ${stateFilter}">Filter</span>
+                <a class="btn btn-soft" th:href="@{'/projects/' + ${project.id()}}">Back to Project</a>
+            </div>
+        </header>
+
+        <section class="content-card">
+            <div class="content-header">
+                <h2 class="content-title">Previous Executions</h2>
+            </div>
+            <div class="empty-state" th:if="${#lists.isEmpty(executionRows)}">No executions found for this filter.</div>
+            <div class="table-wrap" th:if="${!#lists.isEmpty(executionRows)}">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Scenario</th>
+                        <th>Feature</th>
+                        <th>State</th>
+                        <th>Message</th>
+                        <th>Updated At</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="run : ${executionRows}">
+                        <td>
+                            <div th:text="${run.scenarioName()}">Scenario</div>
+                            <a class="execution-subtle-link"
+                               th:href="@{'/projects/' + ${project.id()} + '/features'}">Back to scenarios</a>
+                        </td>
+                        <td>
+                            <a class="execution-link"
+                               th:href="@{'/projects/' + ${project.id()} + '/features/' + ${run.featureId()} + '/scenarios'}"
+                               th:text="${run.featureName()}">Feature</a>
+                        </td>
+                        <td>
+                            <span class="execution-status"
+                                  th:classappend="${run.state() == 'SUCCESS'} ? ' ok' :
+                                                  (${run.state() == 'FAILURE'} ? ' fail' :
+                                                  (${run.state() == 'RUNNING'} ? ' run' : ''))"
+                                  th:text="${run.state()}">RUNNING</span>
+                        </td>
+                        <td class="execution-message" th:text="${run.message()}">-</td>
+                        <td class="execution-time"
+                            th:text="${#strings.isEmpty(run.updatedAt()) ? '-' : run.updatedAt()}">-
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
+

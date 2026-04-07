@@ -12,9 +12,9 @@ test:
       - .m2/repository
   script:
     - mvn -version
-    - mvn test
+    - mvn -f blackdrongo-selenium/pom.xml test
   artifacts:
     when: always
     paths:
-      - target/surefire-reports/
-      - target/cucumber-reports/
+      - blackdrongo-selenium/target/surefire-reports/
+      - blackdrongo-selenium/target/cucumber-reports/

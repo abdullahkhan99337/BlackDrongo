@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Create Project</title>
+    <link href="/css/dashboard-theme.css" rel="stylesheet">
+    <style>
+        .build-shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
+            gap: 16px;
+        }
+        .build-intro {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .build-kpi {
+            border: 1px solid rgba(122, 143, 218, 0.24);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(10, 16, 41, 0.62);
+        }
+        .build-kpi-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .build-kpi-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .build-kpi-meta {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        .build-form-card,
+        .build-summary-card {
+            align-self: start;
+        }
+        .build-form-section {
+            border-top: 1px solid rgba(122, 143, 218, 0.16);
+            padding-top: 14px;
+            margin-top: 14px;
+        }
+        .build-form-section:first-of-type {
+            border-top: 0;
+            padding-top: 0;
+            margin-top: 0;
+        }
+        .build-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+        .build-summary-stack {
+            display: grid;
+            gap: 14px;
+        }
+        .build-summary-block {
+            border: 1px solid rgba(122, 143, 218, 0.22);
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(10, 16, 41, 0.48);
+        }
+        .build-summary-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        .build-summary-list {
+            display: grid;
+            gap: 7px;
+        }
+        .build-summary-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 13px;
+        }
+        .build-summary-row strong {
+            color: var(--text);
+        }
+        .build-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .build-chip {
+            border-radius: 999px;
+            padding: 6px 10px;
+            border: 1px solid rgba(89, 214, 255, 0.24);
+            background: rgba(89, 214, 255, 0.12);
+            color: var(--text);
+            font-size: 12px;
+        }
+        .build-checklist {
+            display: grid;
+            gap: 8px;
+            color: var(--text);
+            font-size: 13px;
+        }
+        .build-checklist label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        @media (max-width: 1120px) {
+            .build-shell {
+                grid-template-columns: 1fr;
+            }
+            .build-intro {
+                grid-template-columns: repeat(2, minmax(120px, 1fr));
+            }
+        }
+        @media (max-width: 720px) {
+            .build-intro {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+<div class="app-shell">
+    <aside class="app-sidebar" th:replace="~{fragments/sidebar :: sidebar('projects')}"></aside>
+
+    <main class="app-main">
+        <header class="top-toolbar">
+            <th:block
+                    th:replace="~{fragments/page-header :: toolbar_meta('Projects / Create Project', ${editMode} ? 'Edit Project Baseline' : 'Create Project')}"></th:block>
+            <div class="toolbar-controls">
+                <a class="btn btn-soft" href="/projects">Back to Projects</a>
+            </div>
+        </header>
+
+        <section class="build-intro">
+            <article class="build-kpi">
+                <div class="build-kpi-label">Project Type</div>
+                <div class="build-kpi-value">Manual</div>
+                <div class="build-kpi-meta">Triggered from UI</div>
+            </article>
+            <article class="build-kpi">
+                <div class="build-kpi-label">Execution Target</div>
+                <div class="build-kpi-value">Project</div>
+                <div class="build-kpi-meta">Reusable automation baseline</div>
+            </article>
+            <article class="build-kpi">
+                <div class="build-kpi-label">Scheduling</div>
+                <div class="build-kpi-value">Run Now</div>
+                <div class="build-kpi-meta">Queue immediately after creation</div>
+            </article>
+            <article class="build-kpi">
+                <div class="build-kpi-label">Artifacts</div>
+                <div class="build-kpi-value">Code + Logs</div>
+                <div class="build-kpi-meta">Generated framework output</div>
+            </article>
+        </section>
+
+        <div class="build-shell">
+            <section class="content-card build-form-card">
+                <div class="subtle" style="margin-bottom:12px;">
+                    Define the project baseline: project identity, execution engine, browser target, and browser
+                    startup behavior.
+                </div>
+                <form action="/projects" method="post"
+                      th:action="${formAction}"
+                      th:object="${project}">
+                    <div class="build-form-section">
+                        <div class="build-section-title">Project Identity</div>
+                        <label>Project name</label>
+                        <input placeholder="checkout-regression-build" required th:field="*{projectName}" type="text"/>
+
+                        <div class="grid-2">
+                            <div>
+                                <label>Automation engine</label>
+                                <select th:field="*{engine}">
+                                    <option value="selenium">Selenium</option>
+                                    <option value="playwright">Playwright</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Execution browser</label>
+                                <select id="browserSelect" th:field="*{browser}">
+                                    <option value="chrome">chrome</option>
+                                    <option value="firefox">firefox</option>
+                                </select>
+                                <div class="hint" id="browserHint"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="build-form-section">
+                        <div class="build-section-title">Execution Setup</div>
+                        <div class="grid-2">
+                            <div>
+                                <label>Run mode</label>
+                                <select th:field="*{headless}">
+                                    <option value="false">headed (visible browser)</option>
+                                    <option value="true">headless (background run)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Application base URL</label>
+                                <input placeholder="https://example.com" th:field="*{baseUrl}" type="text"/>
+                            </div>
+                        </div>
+                        <div class="build-summary-block" style="margin-top:12px;">
+                            <div class="build-summary-title">Suggested Runtime Inputs</div>
+                            <div class="build-chip-row">
+                                <span class="build-chip">Run Now</span>
+                                <span class="build-chip">Sequential by default</span>
+                                <span class="build-chip">Tag filter optional</span>
+                                <span class="build-chip">Browser override ready</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="build-form-section">
+                        <div class="build-section-title">Browser Launch Policy</div>
+                        <div class="content-card" id="chromeOptionsEditor"
+                             style="padding:12px;border-radius:12px;margin-bottom:12px;">
+                            <div class="subtle" style="margin-bottom:10px;">Curated Chrome options (Selenium)</div>
+                            <div class="grid-2">
+                                <label class="toggle">
+                                    <input class="toggle-input" id="chromeStartMaximized"
+                                           th:field="*{chromeStartMaximized}"
+                                           type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Start Maximized</span>
+                                </label>
+                                <label class="toggle">
+                                    <input class="toggle-input" id="chromeIncognito" th:field="*{chromeIncognito}"
+                                           type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Incognito</span>
+                                </label>
+                                <label class="toggle">
+                                    <input class="toggle-input" id="chromeDisableNotifications"
+                                           th:field="*{chromeDisableNotifications}"
+                                           type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Disable Notifications</span>
+                                </label>
+                                <label class="toggle">
+                                    <input class="toggle-input" id="chromeDisablePopupBlocking"
+                                           th:field="*{chromeDisablePopupBlocking}"
+                                           type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Disable Popup Blocking</span>
+                                </label>
+                            </div>
+                            <div style="margin-top:10px;">
+                                <label class="toggle">
+                                    <input class="toggle-input" id="chromeAcceptInsecureCerts"
+                                           th:field="*{chromeAcceptInsecureCerts}"
+                                           type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Accept Insecure Certificates</span>
+                                </label>
+                            </div>
+                            <div style="margin-top:10px;">
+                                <label>Advanced custom Chrome args (optional)</label>
+                                <textarea id="chromeCustomArgs"
+                                          placeholder="One arg per line or comma-separated, e.g.&#10;--disable-dev-shm-usage&#10;--window-size=1920,1080"
+                                          rows="4"
+                                          th:field="*{chromeCustomArgs}"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="content-card" id="firefoxOptionsEditor"
+                             style="padding:12px;border-radius:12px;margin-bottom:12px;display:none;">
+                            <div class="subtle" style="margin-bottom:10px;">Curated Firefox options (Selenium)</div>
+                            <div>
+                                <label class="toggle">
+                                    <input class="toggle-input" id="firefoxPrivateMode" th:field="*{firefoxPrivateMode}"
+                                           type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Private Mode</span>
+                                </label>
+                            </div>
+                            <div style="margin-top:10px;">
+                                <label class="toggle">
+                                    <input class="toggle-input" id="firefoxAcceptInsecureCerts"
+                                           th:field="*{firefoxAcceptInsecureCerts}"
+                                           type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Accept Insecure Certificates</span>
+                                </label>
+                            </div>
+                            <div style="margin-top:10px;">
+                                <label>Advanced custom Firefox args (optional)</label>
+                                <textarea id="firefoxCustomArgs" placeholder="One arg per line or comma-separated"
+                                          rows="4"
+                                          th:field="*{firefoxCustomArgs}"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="content-card" id="edgeOptionsEditor"
+                             style="padding:12px;border-radius:12px;margin-bottom:12px;display:none;">
+                            <div class="subtle" style="margin-bottom:10px;">Curated Edge options (Selenium)</div>
+                            <div class="grid-2">
+                                <label class="toggle">
+                                    <input class="toggle-input" id="edgeStartMaximized" th:field="*{edgeStartMaximized}"
+                                           type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Start Maximized</span>
+                                </label>
+                                <label class="toggle">
+                                    <input class="toggle-input" id="edgeInPrivate" th:field="*{edgeInPrivate}"
+                                           type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">InPrivate Mode</span>
+                                </label>
+                            </div>
+                            <div style="margin-top:10px;">
+                                <label class="toggle">
+                                    <input class="toggle-input" id="edgeAcceptInsecureCerts"
+                                           th:field="*{edgeAcceptInsecureCerts}"
+                                           type="checkbox"/>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Accept Insecure Certificates</span>
+                                </label>
+                            </div>
+                            <div style="margin-top:10px;">
+                                <label>Advanced custom Edge args (optional)</label>
+                                <textarea id="edgeCustomArgs" placeholder="One arg per line or comma-separated" rows="4"
+                                          th:field="*{edgeCustomArgs}"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="content-card" id="otherBrowserInfo"
+                             style="padding:12px;border-radius:12px;display:none;">
+                            <div class="subtle">Curated options are currently available for Selenium browsers: Chrome,
+                                Firefox,
+                                and Edge.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-row" style="margin-top:8px;">
+                        <button class="btn btn-primary" th:text="${editMode} ? 'Save Project' : 'Create Project'"
+                                type="submit">Create Project
+                        </button>
+                        <a class="btn btn-link" href="/projects">Cancel</a>
+                    </div>
+                </form>
+            </section>
+
+            <aside class="content-card build-summary-card">
+                <div class="build-summary-stack">
+                    <div class="build-summary-block">
+                        <div class="build-summary-title">Project Summary</div>
+                        <div class="build-summary-list">
+                            <div class="build-summary-row"><span>Name</span><strong id="buildSummaryName">checkout-regression-build</strong>
+                            </div>
+                            <div class="build-summary-row"><span>Engine</span><strong
+                                    id="buildSummaryEngine">Selenium</strong></div>
+                            <div class="build-summary-row"><span>Browser</span><strong
+                                    id="buildSummaryBrowser">chrome</strong></div>
+                            <div class="build-summary-row"><span>Mode</span><strong
+                                    id="buildSummaryMode">headed</strong></div>
+                            <div class="build-summary-row"><span>Base URL</span><strong id="buildSummaryUrl">Not
+                                set</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="build-summary-block">
+                        <div class="build-summary-title">Baseline Includes</div>
+                        <div class="build-chip-row">
+                            <span class="build-chip">Project baseline</span>
+                            <span class="build-chip">Browser policy</span>
+                            <span class="build-chip">Engine binding</span>
+                            <span class="build-chip">Generated artifacts</span>
+                        </div>
+                    </div>
+
+                    <div class="build-summary-block">
+                        <div class="build-summary-title">Next Step Ideas</div>
+                        <div class="build-checklist">
+                            <label><input checked disabled type="checkbox"/> Save the build baseline</label>
+                            <label><input checked disabled type="checkbox"/> Add features and scenarios</label>
+                            <label><input checked disabled type="checkbox"/> Trigger a run from project details</label>
+                            <label><input checked disabled type="checkbox"/> Review outputs in Build History</label>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+</div>
+<script>
+    const BROWSERS_BY_ENGINE = {
+        selenium: ['chrome', 'firefox', 'edge', 'safari'],
+        playwright: ['chromium', 'chrome', 'msedge', 'firefox', 'webkit']
+    };
+    const CHROME_BLOCKED_PREFIXES = ['--user-data-dir', '--profile-directory', '--remote-debugging-port'];
+    const CHROME_TOGGLE_MAP = [
+        { id: 'chromeStartMaximized', arg: '--start-maximized' },
+        { id: 'chromeIncognito', arg: '--incognito' },
+        { id: 'chromeDisableNotifications', arg: '--disable-notifications' },
+        { id: 'chromeDisablePopupBlocking', arg: '--disable-popup-blocking' }
+    ];
+    const EDGE_TOGGLE_MAP = [
+        { id: 'edgeStartMaximized', arg: '--start-maximized' },
+        { id: 'edgeInPrivate', arg: '--inprivate' }
+    ];
+
+    function syncToggleVisuals() {
+        document.querySelectorAll('.toggle').forEach((toggle) => {
+            const input = toggle.querySelector('.toggle-input');
+            if (!input) {
+                return;
+            }
+            toggle.classList.toggle('is-on', !!input.checked);
+        });
+    }
+
+    function syncBrowserEditors() {
+        const engineSelect = document.querySelector('[name="engine"]');
+        const browserSelect = document.getElementById('browserSelect');
+        const chromeEditor = document.getElementById('chromeOptionsEditor');
+        const firefoxEditor = document.getElementById('firefoxOptionsEditor');
+        const edgeEditor = document.getElementById('edgeOptionsEditor');
+        const otherBrowserInfo = document.getElementById('otherBrowserInfo');
+        if (!engineSelect || !browserSelect || !chromeEditor || !firefoxEditor || !edgeEditor || !otherBrowserInfo) {
+            return;
+        }
+
+        const engine = engineSelect.value || 'selenium';
+        const browser = browserSelect.value || '';
+        chromeEditor.style.display = engine === 'selenium' && browser === 'chrome' ? 'block' : 'none';
+        firefoxEditor.style.display = engine === 'selenium' && browser === 'firefox' ? 'block' : 'none';
+        edgeEditor.style.display = engine === 'selenium' && browser === 'edge' ? 'block' : 'none';
+        otherBrowserInfo.style.display =
+            engine === 'selenium' && ['chrome', 'firefox', 'edge'].includes(browser) ? 'none' : 'block';
+    }
+
+    function syncBuildSummary() {
+        const name = document.querySelector('[name="projectName"]')?.value || 'checkout-regression-build';
+        const engine = document.querySelector('[name="engine"]')?.value || 'selenium';
+        const browser = document.getElementById('browserSelect')?.value || '';
+        const headless = document.querySelector('[name="headless"]')?.value === 'true';
+        const baseUrl = document.querySelector('[name="baseUrl"]')?.value || '';
+        const nameEl = document.getElementById('buildSummaryName');
+        const engineEl = document.getElementById('buildSummaryEngine');
+        const browserEl = document.getElementById('buildSummaryBrowser');
+        const modeEl = document.getElementById('buildSummaryMode');
+        const urlEl = document.getElementById('buildSummaryUrl');
+        if (nameEl) {
+            nameEl.textContent = name;
+        }
+        if (engineEl) {
+            engineEl.textContent = engine.charAt(0).toUpperCase() + engine.slice(1);
+        }
+        if (browserEl) {
+            browserEl.textContent = browser || '-';
+        }
+        if (modeEl) {
+            modeEl.textContent = headless ? 'headless' : 'headed';
+        }
+        if (urlEl) {
+            urlEl.textContent = baseUrl || 'Not set';
+        }
+    }
+
+    function syncBrowserOptions() {
+        const engineSelect = document.querySelector('[name="engine"]');
+        const browserSelect = document.getElementById('browserSelect');
+        const browserHint = document.getElementById('browserHint');
+        if (!engineSelect || !browserSelect) {
+            return;
+        }
+        const engine = engineSelect.value || 'selenium';
+        const options = BROWSERS_BY_ENGINE[engine] || BROWSERS_BY_ENGINE.selenium;
+        const current = browserSelect.value;
+
+        browserSelect.innerHTML = '';
+        options.forEach((browser) => {
+            const option = document.createElement('option');
+            option.value = browser;
+            option.textContent = browser;
+            browserSelect.appendChild(option);
+        });
+
+        if (options.includes(current)) {
+            browserSelect.value = current;
+        } else {
+            browserSelect.value = options[0];
+        }
+
+        if (browserHint) {
+            browserHint.textContent = `${engine.charAt(0).toUpperCase() + engine.slice(1)} options: ${options.join(', ')}.`;
+        }
+        syncBrowserEditors();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const engineSelect = document.querySelector('[name="engine"]');
+        const browserSelect = document.getElementById('browserSelect');
+        if (engineSelect) {
+            engineSelect.addEventListener('change', syncBrowserOptions);
+            engineSelect.addEventListener('change', syncBuildSummary);
+        }
+        if (browserSelect) {
+            browserSelect.addEventListener('change', syncBrowserEditors);
+            browserSelect.addEventListener('change', syncBuildSummary);
+        }
+        document.querySelector('[name="projectName"]')?.addEventListener('input', syncBuildSummary);
+        document.querySelector('[name="headless"]')?.addEventListener('change', syncBuildSummary);
+        document.querySelector('[name="baseUrl"]')?.addEventListener('input', syncBuildSummary);
+        document.addEventListener('change', (event) => {
+            if (event.target && event.target.classList && event.target.classList.contains('toggle-input')) {
+                syncToggleVisuals();
+            }
+        });
+        CHROME_TOGGLE_MAP.forEach((item) => {
+            const input = document.getElementById(item.id);
+            if (input) {
+                input.addEventListener('change', syncBrowserEditors);
+            }
+        });
+        const customArgs = document.getElementById('chromeCustomArgs');
+        if (customArgs) {
+            customArgs.addEventListener('input', syncBrowserEditors);
+        }
+        const acceptInsecure = document.getElementById('chromeAcceptInsecureCerts');
+        if (acceptInsecure) {
+            acceptInsecure.addEventListener('change', syncBrowserEditors);
+        }
+        EDGE_TOGGLE_MAP.forEach((item) => {
+            const input = document.getElementById(item.id);
+            if (input) {
+                input.addEventListener('change', syncBrowserEditors);
+            }
+        });
+        const edgeCustomArgs = document.getElementById('edgeCustomArgs');
+        if (edgeCustomArgs) {
+            edgeCustomArgs.addEventListener('input', syncBrowserEditors);
+        }
+        const edgeAcceptInsecure = document.getElementById('edgeAcceptInsecureCerts');
+        if (edgeAcceptInsecure) {
+            edgeAcceptInsecure.addEventListener('change', syncBrowserEditors);
+        }
+        const firefoxPrivate = document.getElementById('firefoxPrivateMode');
+        if (firefoxPrivate) {
+            firefoxPrivate.addEventListener('change', syncBrowserEditors);
+        }
+        const firefoxCustomArgs = document.getElementById('firefoxCustomArgs');
+        if (firefoxCustomArgs) {
+            firefoxCustomArgs.addEventListener('input', syncBrowserEditors);
+        }
+        const firefoxAcceptInsecure = document.getElementById('firefoxAcceptInsecureCerts');
+        if (firefoxAcceptInsecure) {
+            firefoxAcceptInsecure.addEventListener('change', syncBrowserEditors);
+        }
+        syncBrowserOptions();
+        syncToggleVisuals();
+        syncBuildSummary();
+    });
+</script>
+</body>
+</html>
+
